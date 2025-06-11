@@ -76,9 +76,9 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final orderProvider = Provider.of<OrderProvider>(context);
-    final displayPrice = orderProvider.orderType == 'dine-in' 
-        ? widget.menuItem.getDineInPrice() 
-        : widget.menuItem.price;
+    final displayPrice = orderProvider.orderType == 'takeaway' 
+        ? widget.menuItem.getTakeawayPrice() 
+        : widget.menuItem.getDineInPrice();
 
     return Scaffold(
       appBar: AppBar(
@@ -255,10 +255,21 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                       name: selectedRice != null && selectedRice != 'Pilau Rice' && _shouldShowRiceSelection()
                           ? "${widget.menuItem.name} with $selectedRice"
                           : widget.menuItem.name,
-                      price: displayPrice + additionalCost,
+                      price: widget.menuItem.price, // Keep original dine-in price
                       category: widget.menuItem.category,
                       description: widget.menuItem.description,
-                      dineInPrice: widget.menuItem.dineInPrice,
+                      takeawayPrice: widget.menuItem.takeawayPrice, // Keep original takeaway price
+                    );
+                    
+                    // Adjust the price in the order item based on current order type + rice selection
+                    double finalPrice = displayPrice + additionalCost;
+                    
+                    // Create adjusted item with the final calculated price
+                    MenuItem finalItem = MenuItem(
+                      name: adjustedItem.name,
+                      price: finalPrice, // Use calculated price for the order
+                      category: adjustedItem.category,
+                      description: adjustedItem.description,
                     );
                     
                     // Add to cart
@@ -266,7 +277,7 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                     
                     // Create new order item with selected options
                     OrderItem orderItem = OrderItem(
-                      menuItem: adjustedItem,
+                      menuItem: finalItem,
                       quantity: quantity,
                       specialInstructions: noteController.text.isNotEmpty ? noteController.text : null,
                     );

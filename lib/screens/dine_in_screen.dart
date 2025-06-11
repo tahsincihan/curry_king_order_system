@@ -347,11 +347,6 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
   }
 
   Widget _buildMenuItem(MenuItem item) {
-    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-    final displayPrice = orderProvider.orderType == 'dine-in' 
-        ? item.getDineInPrice() 
-        : item.price;
-
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
@@ -416,29 +411,14 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                     
                     const SizedBox(height: 4),
                     
-                    // Price with dine-in indicator
-                    Row(
-                      children: [
-                        Text(
-                          '£${displayPrice.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange[700],
-                          ),
-                        ),
-                        if (item.dineInPrice != null && item.dineInPrice != item.price) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            '(Dine-in)',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[500],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ],
+                    // Price - Show dine-in price (which is the main price)
+                    Text(
+                      '£${item.getDineInPrice().toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange[700],
+                      ),
                     ),
                   ],
                 ),

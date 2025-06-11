@@ -409,14 +409,29 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     
                     const SizedBox(height: 4),
                     
-                    // Price
-                    Text(
-                      '£${item.price.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.orange[700],
-                      ),
+                    // Price - Show takeaway price
+                    Row(
+                      children: [
+                        Text(
+                          '£${item.getTakeawayPrice().toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange[700],
+                          ),
+                        ),
+                        if (item.takeawayPrice != null && item.takeawayPrice != item.price) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '(Takeaway)',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[500],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),

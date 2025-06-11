@@ -1,21 +1,26 @@
 class MenuItem {
   final String name;
-  final double price;
+  final double price; // This is now the dine-in price
   final String category;
   final String? description;
-  final double? dineInPrice; // New field for dine-in pricing
+  final double? takeawayPrice; // New field for takeaway pricing
 
   MenuItem({
     required this.name,
-    required this.price,
+    required this.price, // dine-in price
     required this.category,
     this.description,
-    this.dineInPrice,
+    this.takeawayPrice,
   });
 
   // Method to get the appropriate price based on order type
+  double getTakeawayPrice() {
+    return takeawayPrice ?? price; // Use takeaway price if available, otherwise use dine-in price
+  }
+  
+  // Method to get dine-in price (just returns the main price)
   double getDineInPrice() {
-    return dineInPrice ?? price; // Use dine-in price if available, otherwise use regular price
+    return price;
   }
 }
 
