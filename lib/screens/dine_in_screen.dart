@@ -4,6 +4,8 @@ import '../model/menu_data.dart';
 import '../model/order_model.dart';
 import '../services/order_provider.dart';
 import '../Screens/order_summary.dart';
+import '../Screens/menu_item_screen.dart';
+
 
 class DineInOrderScreen extends StatefulWidget {
   const DineInOrderScreen({Key? key}) : super(key: key);
@@ -33,10 +35,6 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Get screen size for responsive layout
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dine In Order'),
@@ -93,89 +91,88 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
           ),
         ],
       ),
-      // Use SafeArea to avoid overflow at the bottom
-      body: SafeArea(
-        child: Row(
-          children: [
-            // Categories Sidebar - RESPONSIVE WIDTH
-            Container(
-              width: isSmallScreen ? screenWidth * 0.30 : 140, // Reduced width
-              color: Colors.grey[100],
-              child: ListView.builder(
-                itemCount: MenuData.getCategories().length,
-                itemBuilder: (context, index) {
-                  String category = MenuData.getCategories()[index];
-                  bool isSelected = category == selectedCategory;
-                  
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 1), // Minimal margin
-                    child: Material(
+      body: showTableForm 
+          ? _buildTableForm() 
+          : _buildCategoryAndMenuScreen(),
+    );
+  }
+
+  Widget _buildCategoryAndMenuScreen() {
+    return Column(
+      children: [
+        // Horizontal category list
+        Container(
+          height: 48,
+          color: Colors.orange[50],
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: MenuData.getCategories().length,
+            itemBuilder: (context, index) {
+              String category = MenuData.getCategories()[index];
+              bool isSelected = category == selectedCategory;
+              
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      selectedCategory = category;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
                       color: isSelected ? Colors.orange[700] : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(6),
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = category;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8), // Minimal padding
-                          child: Text(
-                            category,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.grey[700],
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 12, // Smaller font
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? Colors.orange[700]! : Colors.grey[400]!,
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-            
-            // Menu Items or Table Form
-            Expanded(
-              child: showTableForm ? _buildTableForm() : _buildMenuItems(),
-            ),
-            
-            // Order Summary Sidebar - RESPONSIVE WIDTH
-            Container(
-              width: isSmallScreen ? screenWidth * 0.30 : 180, // Reduced width
-              color: Colors.grey[50],
-              child: _buildOrderSummary(),
-            ),
-          ],
+                    child: Text(
+                      category,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey[700],
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
-      ),
+        
+        // Category title and items
+        Expanded(
+          child: _buildMenuItems(),
+        ),
+        
+        // Order summary footer
+        _buildOrderSummaryFooter(),
+      ],
     );
   }
 
   Widget _buildMenuItems() {
-    print('Building menu items for category: $selectedCategory');
-    
     List<MenuItem> items = MenuData.getItemsByCategory(selectedCategory);
-    print('Found ${items.length} items for $selectedCategory');
     
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            selectedCategory,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            child: Text(
+              selectedCategory,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
+              ),
             ),
           ),
-          const SizedBox(height: 8),
           Expanded(
             child: items.isEmpty 
             ? Center(child: Text('No items in this category', 
@@ -199,55 +196,79 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
       child: InkWell(
         onTap: () {
-          Provider.of<OrderProvider>(context, listen: false).addItem(item);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${item.name} added to order'),
-                duration: const Duration(seconds: 1),
-              ),
-            );
-          }
+          // Navigate to detail screen instead of directly adding
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MenuItemDetailScreen(menuItem: item),
+            ),
+          );
         },
         child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Item name with constraints
-              SizedBox(
-                width: double.infinity,
-                child: Text(
-                  item.name,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              // Item details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Item name
+                    Text(
+                      item.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    
+                    // Description if available
+                    if (item.description != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        item.description!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    
+                    const SizedBox(height: 4),
+                    
+                    // Price
+                    Text(
+                      '£${item.price.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange[700],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 4),
               
-              // Price and add button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '£${item.price.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange[700],
-                    ),
+              // Add button
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.orange[700],
+                  shape: BoxShape.circle,
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(6.0),
+                  child: Icon(
+                    Icons.add,
+                    color: Colors.white,
+                    size: 22,
                   ),
-                  Icon(
-                    Icons.add_circle,
-                    color: Colors.orange[700],
-                    size: 20,
-                  ),
-                ],
+                ),
               ),
             ],
           ),
@@ -256,256 +277,306 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
     );
   }
 
-  Widget _buildTableForm() {
-    // Get screen size for responsive layout
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-    
-    return Container(
-      padding: const EdgeInsets.all(12),
-      child: Consumer<OrderProvider>(
-        builder: (context, orderProvider, child) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () {
-                      setState(() {
-                        showTableForm = false;
-                      });
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Table Information',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[800],
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              // Table Number Input
-              TextFormField(
-                controller: tableController,
-                decoration: const InputDecoration(
-                  labelText: 'Table Number *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.table_restaurant, size: 18),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  orderProvider.setTableNumber(value);
-                },
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Payment Method
-              const Text('Payment Method:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  ChoiceChip(
-                    label: const Text('Cash'),
-                    selected: orderProvider.paymentMethod == 'cash',
-                    onSelected: (selected) {
-                      if (selected) orderProvider.setPaymentMethod('cash');
-                    },
-                  ),
-                  ChoiceChip(
-                    label: const Text('Card'),
-                    selected: orderProvider.paymentMethod == 'card',
-                    onSelected: (selected) {
-                      if (selected) orderProvider.setPaymentMethod('card');
-                    },
-                  ),
-                ],
-              ),
-              
-              const Spacer(),
-              
-              // Continue Button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: tableController.text.isNotEmpty ? () async {
-                    if (mounted) {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => OrderSummaryScreen(),
-                        ),
-                      );
-                    }
-                  } : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange[700],
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text(
-                    'Review Order',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildOrderSummary() {
+  Widget _buildOrderSummaryFooter() {
     return Consumer<OrderProvider>(
       builder: (context, orderProvider, child) {
-        return Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4), // Minimal padding
-              color: Colors.orange[700],
-              child: const Row(
-                children: [
-                  Icon(Icons.receipt, color: Colors.white, size: 14), // Smaller icon
-                  SizedBox(width: 2), // Minimal spacing
-                  Expanded(
-                    child: Text(
-                      'Order Summary',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12, // Smaller font
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+        if (orderProvider.orderItems.isEmpty) {
+          return const SizedBox.shrink(); // No footer if cart is empty
+        }
+        
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, -2),
               ),
-            ),
-            Expanded(
-              child: orderProvider.orderItems.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No items added',
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 12,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: orderProvider.orderItems.length,
-                      itemBuilder: (context, index) {
-                        OrderItem orderItem = orderProvider.orderItems[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2), // Minimal margin
-                          child: Padding(
-                            padding: const EdgeInsets.all(4), // Minimal padding
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        orderItem.menuItem.name,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11, // Smaller font
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    InkWell(
-                                      onTap: () {
-                                        orderProvider.removeItem(index);
-                                      },
-                                      child: const Icon(Icons.close, size: 14),
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        InkWell(
-                                          onTap: orderItem.quantity > 1
-                                              ? () => orderProvider.updateItemQuantity(
-                                                  index, orderItem.quantity - 1)
-                                              : null,
-                                          child: const Icon(Icons.remove_circle_outline, size: 14),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                                          child: Text('${orderItem.quantity}', style: const TextStyle(fontSize: 11)),
-                                        ),
-                                        InkWell(
-                                          onTap: () => orderProvider.updateItemQuantity(
-                                              index, orderItem.quantity + 1),
-                                          child: const Icon(Icons.add_circle_outline, size: 14),
-                                        ),
-                                      ],
-                                    ),
-                                    Text(
-                                      '£${orderItem.totalPrice.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.orange[700],
-                                        fontSize: 11, // Smaller font
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-            if (orderProvider.orderItems.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.all(4), // Minimal padding
-                color: Colors.white,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            ],
+          ),
+          child: Row(
+            children: [
+              // Order summary
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Total:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold), // Smaller font
+                    Text(
+                      '${orderProvider.totalItems} ${orderProvider.totalItems == 1 ? 'item' : 'items'}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
                     ),
                     Text(
                       '£${orderProvider.total.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 12, // Smaller font
+                      style: const TextStyle(
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.orange[700],
                       ),
                     ),
                   ],
                 ),
               ),
+              
+              // View order button
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    showTableForm = true;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange[700],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                child: const Text(
+                  'View Order',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
-          ],
+          ),
         );
       },
+    );
+  }
+
+  Widget _buildTableForm() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Consumer<OrderProvider>(
+          builder: (context, orderProvider, child) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        setState(() {
+                          showTableForm = false;
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Table Information',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Order summary
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Order Summary',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ...orderProvider.orderItems.map((item) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${item.quantity}x',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.menuItem.name,
+                                        style: const TextStyle(fontWeight: FontWeight.w500),
+                                      ),
+                                      if (item.specialInstructions != null)
+                                        Text(
+                                          'Note: ${item.specialInstructions}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  '£${item.totalPrice.toStringAsFixed(2)}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 16),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () {
+                                    orderProvider.removeItem(
+                                      orderProvider.orderItems.indexOf(item)
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        const Divider(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Total:',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '£${orderProvider.total.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Table Number Input
+                const Text(
+                  'Table Number:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: tableController,
+                  decoration: InputDecoration(
+                    labelText: 'Enter Table Number *',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    prefixIcon: const Icon(Icons.table_restaurant),
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    orderProvider.setTableNumber(value);
+                  },
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Payment Method
+                const Text(
+                  'Payment Method:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('Cash'),
+                        selected: orderProvider.paymentMethod == 'cash',
+                        onSelected: (selected) {
+                          if (selected) orderProvider.setPaymentMethod('cash');
+                        },
+                        labelStyle: TextStyle(
+                          color: orderProvider.paymentMethod == 'cash'
+                              ? Colors.white
+                              : Colors.black,
+                        ),
+                        selectedColor: Colors.orange[700],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('Card'),
+                        selected: orderProvider.paymentMethod == 'card',
+                        onSelected: (selected) {
+                          if (selected) orderProvider.setPaymentMethod('card');
+                        },
+                        labelStyle: TextStyle(
+                          color: orderProvider.paymentMethod == 'card'
+                              ? Colors.white
+                              : Colors.black,
+                        ),
+                        selectedColor: Colors.orange[700],
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 32),
+                
+                // Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: tableController.text.isNotEmpty ? () async {
+                      if (mounted) {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => OrderSummaryScreen(),
+                          ),
+                        );
+                      }
+                    } : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange[700],
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text(
+                      'Review Order',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }

@@ -106,6 +106,23 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
+  void addCompleteOrderItem(OrderItem newItem) {
+    // Check if a similar item already exists
+    int existingIndex = _orderItems.indexWhere(
+      (item) => item.menuItem.name == newItem.menuItem.name && 
+                item.specialInstructions == newItem.specialInstructions,
+    );
+
+    if (existingIndex != -1) {
+      // If exists, update quantity
+      _orderItems[existingIndex].quantity += newItem.quantity;
+    } else {
+      // Otherwise add new item
+      _orderItems.add(newItem);
+    }
+    notifyListeners();
+  }
+
   Order createOrder() {
     return Order(
       items: List.from(_orderItems),
