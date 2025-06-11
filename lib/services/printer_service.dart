@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:bluetooth_print/bluetooth_print.dart';
 import 'package:bluetooth_print/bluetooth_print_model.dart';
-import 'model/order_model.dart';
+import '../Model/order_model.dart';
 
 
 class PrinterService {

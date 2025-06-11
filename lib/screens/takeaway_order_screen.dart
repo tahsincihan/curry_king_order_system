@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../Screens/menu_data.dart';
-import '../Screens/order_model.dart';
-import '../Screens/order_provider.dart';
-import '../Screens/order_summary_screen.dart';
+import '../model/menu_data.dart';
+import '../model/order_model.dart';
+import '../services/order_provider.dart';
+import '../screens/order_summary.dart';
 
 class TakeawayOrderScreen extends StatefulWidget {
   @override

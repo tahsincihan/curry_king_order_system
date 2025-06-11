@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../Screens/order_provider.dart';
-import '../Screens/order_model.dart';
-import '../Screens/printer_service.dart';
+import '../services/order_provider.dart';
+import '../model/order_model.dart';
+import '../services/printer_service.dart';
 
 class OrderSummaryScreen extends StatelessWidget {
   @override

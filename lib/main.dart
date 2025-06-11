@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'services/order_provider.dart';
 
-
 void main() {
   runApp(MyApp());
 }
