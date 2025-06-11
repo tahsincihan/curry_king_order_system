@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bluetooth_print/bluetooth_print.dart';
 import 'package:bluetooth_print/bluetooth_print_model.dart';
-import 'printer_service.dart';
+import '../Screens/printer_service.dart';
 
 class PrinterSettingsScreen extends StatefulWidget {
   @override
