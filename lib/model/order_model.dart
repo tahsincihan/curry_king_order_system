@@ -3,13 +3,20 @@ class MenuItem {
   final double price;
   final String category;
   final String? description;
+  final double? dineInPrice; // New field for dine-in pricing
 
   MenuItem({
     required this.name,
     required this.price,
     required this.category,
     this.description,
+    this.dineInPrice,
   });
+
+  // Method to get the appropriate price based on order type
+  double getDineInPrice() {
+    return dineInPrice ?? price; // Use dine-in price if available, otherwise use regular price
+  }
 }
 
 class OrderItem {

@@ -52,8 +52,34 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
     });
   }
 
+  bool _shouldShowRiceSelection() {
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    
+    // Don't show rice selection for dine-in orders
+    if (orderProvider.orderType == 'dine-in') {
+      return false;
+    }
+    
+    // Don't show rice selection for these categories
+    List<String> excludedCategories = [
+      'Starters',
+      'Tandoori Dishes',
+      'Biryani Dishes',
+      'Vegetable Side Dishes',
+      'Rice & Accompaniments',
+      'English Dishes'
+    ];
+    
+    return !excludedCategories.contains(widget.menuItem.category);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final orderProvider = Provider.of<OrderProvider>(context);
+    final displayPrice = orderProvider.orderType == 'dine-in' 
+        ? widget.menuItem.getDineInPrice() 
+        : widget.menuItem.price;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Customize Order'),
@@ -75,7 +101,7 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                 ),
               ),
               Text(
-                '£${widget.menuItem.price.toStringAsFixed(2)}',
+                '£${displayPrice.toStringAsFixed(2)}',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -125,10 +151,8 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
               
               const SizedBox(height: 24),
               
-              // Rice selection for curry dishes
-              if (widget.menuItem.category.contains('Dishes') && 
-                  !widget.menuItem.category.contains('Starters') &&
-                  !widget.menuItem.category.contains('Tandoori')) ...[
+              // Rice selection for takeaway curry dishes only
+              if (_shouldShowRiceSelection()) ...[
                 const Text(
                   'Select Rice:',
                   style: TextStyle(
@@ -208,7 +232,7 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                     ),
                   ),
                   Text(
-                    '£${((widget.menuItem.price + additionalCost) * quantity).toStringAsFixed(2)}',
+                    '£${((displayPrice + additionalCost) * quantity).toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -228,12 +252,13 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                   onPressed: () {
                     // Create a modified menu item with adjusted price if needed
                     MenuItem adjustedItem = MenuItem(
-                      name: selectedRice != null && selectedRice != 'Pilau Rice'
+                      name: selectedRice != null && selectedRice != 'Pilau Rice' && _shouldShowRiceSelection()
                           ? "${widget.menuItem.name} with $selectedRice"
                           : widget.menuItem.name,
-                      price: widget.menuItem.price + additionalCost,
+                      price: displayPrice + additionalCost,
                       category: widget.menuItem.category,
                       description: widget.menuItem.description,
+                      dineInPrice: widget.menuItem.dineInPrice,
                     );
                     
                     // Add to cart
