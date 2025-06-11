@@ -33,6 +33,10 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen size for responsive layout
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dine In Order'),
@@ -89,84 +93,106 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
           ),
         ],
       ),
-      body: Row(
-        children: [
-          // Categories Sidebar
-          Container(
-            width: 200,
-            color: Colors.grey[100],
-            child: ListView.builder(
-              itemCount: MenuData.getCategories().length,
-              itemBuilder: (context, index) {
-                String category = MenuData.getCategories()[index];
-                bool isSelected = category == selectedCategory;
-                
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  child: Material(
-                    color: isSelected ? Colors.orange[700] : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                    child: InkWell(
+      // Use SafeArea to avoid overflow at the bottom
+      body: SafeArea(
+        child: Row(
+          children: [
+            // Categories Sidebar - RESPONSIVE WIDTH
+            Container(
+              width: isSmallScreen ? screenWidth * 0.35 : 180, // Responsive width
+              color: Colors.grey[100],
+              child: ListView.builder(
+                itemCount: MenuData.getCategories().length,
+                itemBuilder: (context, index) {
+                  String category = MenuData.getCategories()[index];
+                  bool isSelected = category == selectedCategory;
+                  
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2), // Reduced margin
+                    child: Material(
+                      color: isSelected ? Colors.orange[700] : Colors.transparent,
                       borderRadius: BorderRadius.circular(8),
-                      onTap: () {
-                        setState(() {
-                          selectedCategory = category;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Text(
-                          category,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.grey[700],
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 14,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () {
+                          setState(() {
+                            selectedCategory = category;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12), // Reduced padding
+                          child: Text(
+                            category,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.grey[700],
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontSize: isSmallScreen ? 13 : 14, // Smaller font on small screens
+                            ),
+                            maxLines: 2, // Allow wrapping for long category names
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-          
-          // Menu Items or Table Form
-          Expanded(
-            child: showTableForm ? _buildTableForm() : _buildMenuItems(),
-          ),
-          
-          // Order Summary Sidebar
-          _buildOrderSummary(),
-        ],
+            
+            // Menu Items or Table Form
+            Expanded(
+              child: showTableForm ? _buildTableForm() : _buildMenuItems(),
+            ),
+            
+            // Order Summary Sidebar - RESPONSIVE WIDTH
+            Container(
+              width: isSmallScreen ? screenWidth * 0.35 : 220, // Responsive width
+              color: Colors.grey[50],
+              child: _buildOrderSummary(),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildMenuItems() {
+    // Debug print to check the selected category
+    print('Building menu items for category: $selectedCategory');
+    
     List<MenuItem> items = MenuData.getItemsByCategory(selectedCategory);
     
+    // Debug print to check if items are loaded
+    print('Found ${items.length} items for $selectedCategory');
+    
+    // Get screen size for responsive layout
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+    
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8), // Reduced padding
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             selectedCategory,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 20, // Smaller font
               fontWeight: FontWeight.bold,
               color: Colors.grey[800],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8), // Reduced spacing
           Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.5,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+            child: items.isEmpty 
+            ? Center(child: Text('No items in this category', 
+                style: TextStyle(color: Colors.grey[600], fontSize: 16)))
+            : GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: isSmallScreen ? 1 : 2, // 1 column on small screens
+                childAspectRatio: isSmallScreen ? 2.0 : 1.5, // Wider cards on small screens
+                crossAxisSpacing: 8, // Reduced spacing
+                mainAxisSpacing: 8, // Reduced spacing
               ),
               itemCount: items.length,
               itemBuilder: (context, index) {
@@ -196,26 +222,26 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
           }
         },
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(8), // Reduced padding
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 item.name,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 14, // Smaller font
                   fontWeight: FontWeight.bold,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               if (item.description != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 4), // Reduced spacing
                 Expanded(
                   child: Text(
                     item.description!,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11, // Smaller font
                       color: Colors.grey[600],
                     ),
                     maxLines: 3,
@@ -230,7 +256,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                   Text(
                     '£${item.price.toStringAsFixed(2)}',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 14, // Smaller font
                       fontWeight: FontWeight.bold,
                       color: Colors.orange[700],
                     ),
@@ -238,7 +264,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                   Icon(
                     Icons.add_circle,
                     color: Colors.orange[700],
-                    size: 24,
+                    size: 20, // Smaller icon
                   ),
                 ],
               ),
@@ -250,8 +276,12 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
   }
 
   Widget _buildTableForm() {
+    // Get screen size for responsive layout
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+    
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16), // Reduced padding
       child: Consumer<OrderProvider>(
         builder: (context, orderProvider, child) {
           return Column(
@@ -267,21 +297,24 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                       });
                     },
                   ),
-                  Text(
-                    'Table Information',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
+                  Expanded(
+                    child: Text(
+                      'Table Information',
+                      style: TextStyle(
+                        fontSize: 20, // Smaller font
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 24),
               
               // Table Number Input
               SizedBox(
-                width: 300,
+                width: isSmallScreen ? double.infinity : 300,
                 child: TextFormField(
                   controller: tableController,
                   decoration: const InputDecoration(
@@ -296,11 +329,11 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                 ),
               ),
               
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               
               // Payment Method
-              const Text('Payment Method:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 16),
+              const Text('Payment Method:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   ChoiceChip(
@@ -325,7 +358,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
               
               // Continue Button
               SizedBox(
-                width: 300,
+                width: isSmallScreen ? double.infinity : 300,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: tableController.text.isNotEmpty ? () async {
@@ -344,7 +377,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                   ),
                   child: const Text(
                     'Review Order',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -356,144 +389,144 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
   }
 
   Widget _buildOrderSummary() {
-    return Container(
-      width: 300,
-      color: Colors.grey[50],
-      child: Consumer<OrderProvider>(
-        builder: (context, orderProvider, child) {
-          return Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                color: Colors.orange[700],
-                child: const Row(
-                  children: [
-                    Icon(Icons.receipt, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text(
+    return Consumer<OrderProvider>(
+      builder: (context, orderProvider, child) {
+        return Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8), // Reduced padding
+              color: Colors.orange[700],
+              child: const Row(
+                children: [
+                  Icon(Icons.receipt, color: Colors.white, size: 18), // Smaller icon
+                  SizedBox(width: 4), // Reduced spacing
+                  Expanded(
+                    child: Text(
                       'Order Summary',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 14, // Smaller font
                         fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: orderProvider.orderItems.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No items added',
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 14,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: orderProvider.orderItems.length,
+                      itemBuilder: (context, index) {
+                        OrderItem orderItem = orderProvider.orderItems[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), // Reduced margin
+                          child: Padding(
+                            padding: const EdgeInsets.all(6), // Reduced padding
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        orderItem.menuItem.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12, // Smaller font
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, size: 16), // Smaller icon
+                                      onPressed: () {
+                                        orderProvider.removeItem(index);
+                                      },
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.remove_circle_outline, size: 16), // Smaller icon
+                                          onPressed: orderItem.quantity > 1
+                                              ? () => orderProvider.updateItemQuantity(
+                                                  index, orderItem.quantity - 1)
+                                              : null,
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                        Text('${orderItem.quantity}', style: const TextStyle(fontSize: 12)), // Smaller font
+                                        IconButton(
+                                          icon: const Icon(Icons.add_circle_outline, size: 16), // Smaller icon
+                                          onPressed: () => orderProvider.updateItemQuantity(
+                                              index, orderItem.quantity + 1),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      '£${orderItem.totalPrice.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.orange[700],
+                                        fontSize: 12, // Smaller font
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            if (orderProvider.orderItems.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(8), // Reduced padding
+                color: Colors.white,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total:',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold), // Smaller font
+                    ),
+                    Text(
+                      '£${orderProvider.total.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 14, // Smaller font
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange[700],
                       ),
                     ),
                   ],
                 ),
               ),
-              Expanded(
-                child: orderProvider.orderItems.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No items added',
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 16,
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: orderProvider.orderItems.length,
-                        itemBuilder: (context, index) {
-                          OrderItem orderItem = orderProvider.orderItems[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          orderItem.menuItem.name,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete, size: 20),
-                                        onPressed: () {
-                                          orderProvider.removeItem(index);
-                                        },
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                      ),
-                                    ],
-                                  ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.remove_circle_outline),
-                                            onPressed: orderItem.quantity > 1
-                                                ? () => orderProvider.updateItemQuantity(
-                                                    index, orderItem.quantity - 1)
-                                                : null,
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                          ),
-                                          Text('${orderItem.quantity}'),
-                                          IconButton(
-                                            icon: const Icon(Icons.add_circle_outline),
-                                            onPressed: () => orderProvider.updateItemQuantity(
-                                                index, orderItem.quantity + 1),
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                          ),
-                                        ],
-                                      ),
-                                      Text(
-                                        '£${orderItem.totalPrice.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.orange[700],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-              if (orderProvider.orderItems.isNotEmpty) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.white,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total:',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '£${orderProvider.total.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
-          );
-        },
-      ),
+          ],
+        );
+      },
     );
   }
 }
