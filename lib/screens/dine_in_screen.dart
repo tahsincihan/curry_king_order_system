@@ -6,7 +6,6 @@ import '../services/order_provider.dart';
 import '../Screens/order_summary.dart';
 import '../Screens/menu_item_screen.dart';
 
-
 class DineInOrderScreen extends StatefulWidget {
   const DineInOrderScreen({Key? key}) : super(key: key);
 
@@ -33,67 +32,116 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
     super.dispose();
   }
 
+  // Handle back button press
+  Future<bool> _onWillPop() async {
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    
+    // Check if there are items in the cart
+    if (orderProvider.orderItems.isNotEmpty) {
+      // Show confirmation dialog
+      final shouldPop = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Discard Order?'),
+            content: const Text('Are you sure you want to dismiss this order? All items will be lost.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(false); // Don't discard (cancel)
+                },
+                child: const Text('CANCEL'),
+              ),
+              TextButton(
+                onPressed: () {
+                  // Clear the cart and return to home
+                  orderProvider.clearOrder();
+                  Navigator.of(context).pop(true); // Discard order
+                },
+                child: const Text('DISCARD', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          );
+        },
+      );
+      return shouldPop ?? false;
+    }
+    
+    return true; // If no items in cart, allow back navigation
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dine In Order'),
-        backgroundColor: Colors.orange[700],
-        foregroundColor: Colors.white,
-        actions: [
-          Consumer<OrderProvider>(
-            builder: (context, orderProvider, child) {
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.restaurant_menu),
-                    onPressed: () {
-                      if (orderProvider.orderItems.isNotEmpty) {
-                        setState(() {
-                          showTableForm = true;
-                        });
-                      } else {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Add items to order first')),
-                          );
-                        }
-                      }
-                    },
-                  ),
-                  if (orderProvider.totalItems > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '${orderProvider.totalItems}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Dine In Order'),
+          backgroundColor: Colors.orange[700],
+          foregroundColor: Colors.white,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () async {
+              if (await _onWillPop()) {
+                Navigator.of(context).pop();
+              }
             },
           ),
-        ],
+          actions: [
+            Consumer<OrderProvider>(
+              builder: (context, orderProvider, child) {
+                return Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.restaurant_menu),
+                      onPressed: () {
+                        if (orderProvider.orderItems.isNotEmpty) {
+                          setState(() {
+                            showTableForm = true;
+                          });
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Add items to order first')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                    if (orderProvider.totalItems > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            '${orderProvider.totalItems}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+        body: showTableForm 
+            ? _buildTableForm() 
+            : _buildCategoryAndMenuScreen(),
       ),
-      body: showTableForm 
-          ? _buildTableForm() 
-          : _buildCategoryAndMenuScreen(),
     );
   }
 
