@@ -1,376 +1,164 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../services/order_provider.dart';
-import '../model/order_model.dart';
-import '../services/printer_service.dart';
+import 'takeaway_order_screen.dart';
+import 'dine_in_screen.dart';
+import 'printer_settings_screen.dart';
 
-class OrderSummaryScreen extends StatelessWidget {
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.orange[50],
       appBar: AppBar(
-        title: Text('Order Summary'),
+        title: const Text('Curry King Order Pad'),
         backgroundColor: Colors.orange[600],
         foregroundColor: Colors.white,
-      ),
-      body: Consumer<OrderProvider>(
-        builder: (context, orderProvider, child) {
-          Order order = orderProvider.createOrder();
-          
-          return Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Order Type Header
-                      Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    order.orderType == 'takeaway' 
-                                        ? Icons.takeout_dining 
-                                        : Icons.restaurant_menu,
-                                    color: Colors.orange[600],
-                                    size: 24,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    order.orderType == 'takeaway' ? 'TAKEAWAY ORDER' : 'DINE IN ORDER',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.orange[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Order Time: ${_formatDateTime(order.orderTime)}',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      
-                      SizedBox(height: 16),
-                      
-                      // Customer Information
-                      if (order.orderType == 'takeaway') ...[
-                        Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Customer Information',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 12),
-                                _buildInfoRow('Name', order.customerInfo.name ?? 'N/A'),
-                                if (order.customerInfo.isDelivery) ...[
-                                  _buildInfoRow('Type', 'Delivery'),
-                                  _buildInfoRow('Address', order.customerInfo.address ?? 'N/A'),
-                                  _buildInfoRow('Postcode', order.customerInfo.postcode ?? 'N/A'),
-                                  _buildInfoRow('Phone', order.customerInfo.phoneNumber ?? 'N/A'),
-                                ] else ...[
-                                  _buildInfoRow('Type', 'Collection'),
-                                  if (order.customerInfo.phoneNumber?.isNotEmpty == true)
-                                    _buildInfoRow('Phone', order.customerInfo.phoneNumber!),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      ] else ...[
-                        // Dine In Information
-                        Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Table Information',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 12),
-                                _buildInfoRow('Table Number', order.tableNumber ?? 'N/A'),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                      
-                      SizedBox(height: 16),
-                      
-                      // Order Items
-                      Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Order Items',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 12),
-                              ...order.items.map((item) => _buildOrderItem(item)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      
-                      SizedBox(height: 16),
-                      
-                      // Payment Information
-                      Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Payment Information',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 12),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('Subtotal:'),
-                                  Text('£${order.subtotal.toStringAsFixed(2)}'),
-                                ],
-                              ),
-                              if (order.deliveryCharge > 0) ...[
-                                SizedBox(height: 4),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('Delivery Charge:'),
-                                    Text('£${order.deliveryCharge.toStringAsFixed(2)}'),
-                                  ],
-                                ),
-                              ],
-                              Divider(),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Total:',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    '£${order.total.toStringAsFixed(2)}',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.orange[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('Payment Method:'),
-                                  Text(
-                                    order.paymentMethod.toUpperCase(),
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.print),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PrinterSettingsScreen(),
                 ),
-              ),
-              
-              // Print Button
-              Container(
-                padding: EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.orange[600],
-                          side: BorderSide(color: Colors.orange[600]!),
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: Text(
-                          'Back to Edit',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
+              );
+            },
+            tooltip: 'Printer Settings',
+          ),
+        ],
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Logo/Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.restaurant,
+                    size: 80,
+                    color: Colors.orange[700],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'CURRY KING',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange[800],
+                      letterSpacing: 2,
                     ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton.icon(
-                        onPressed: () => _printOrder(context, order),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange[600],
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        icon: Icon(Icons.print),
-                        label: Text(
-                          'Print Order',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
+                  ),
+                  Text(
+                    'INDIAN CUISINE',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.orange[600],
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 50),
+            
+            // Order Type Selection
+            Text(
+              'Select Order Type',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            
+            const SizedBox(height: 30),
+            
+            // Takeaway Button
+            Container(
+              width: 300,
+              height: 80,
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TakeawayOrderScreen(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange[600],
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  elevation: 5,
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.takeout_dining, size: 30),
+                    SizedBox(width: 15),
+                    Text(
+                      'TAKEAWAY',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: TextStyle(fontWeight: FontWeight.w500),
             ),
-          ),
-          Expanded(
-            child: Text(value),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOrderItem(OrderItem item) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Text(
-            '${item.quantity}x',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.menuItem.name,
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-                if (item.specialInstructions?.isNotEmpty == true)
-                  Text(
-                    'Note: ${item.specialInstructions}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                      fontStyle: FontStyle.italic,
+            
+            // Dine In Button
+            Container(
+              width: 300,
+              height: 80,
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DineInOrderScreen(),
                     ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange[700],
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
                   ),
-              ],
+                  elevation: 5,
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.restaurant_menu, size: 30),
+                    SizedBox(width: 15),
+                    Text(
+                      'DINE IN',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-          Text(
-            '£${item.totalPrice.toStringAsFixed(2)}',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
+          ],
+        ),
       ),
     );
-  }
-
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-  }
-
-  void _printOrder(BuildContext context, Order order) async {
-    try {
-      await PrinterService.printOrder(order);
-      
-      // Show success message and navigate back to home
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Order Printed Successfully'),
-            content: Text('The order has been sent to the printer.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  Navigator.of(context).popUntil((route) => route.isFirst); // Go to home
-                  Provider.of<OrderProvider>(context, listen: false).clearOrder();
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    } catch (e) {
-      // Show error message
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Print Error'),
-            content: Text('Failed to print order: ${e.toString()}'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    }
   }
 }

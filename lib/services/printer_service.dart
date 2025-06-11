@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
 import 'package:bluetooth_print/bluetooth_print.dart';
 import 'package:bluetooth_print/bluetooth_print_model.dart';
-import '../Model/order_model.dart';
-
+import '../model/order_model.dart';
 
 class PrinterService {
   static BluetoothPrint bluetoothPrint = BluetoothPrint.instance;
@@ -16,13 +16,14 @@ class PrinterService {
       bluetoothPrint.startScan(timeout: Duration(seconds: 4));
       
       // Listen for scan results
-      bluetoothPrint.scanResults.listen((devices) {
-        // Filter for printers (you might want to filter by device name or type)
-        return devices.where((device) => 
+      bluetoothPrint.scanResults.listen((scanResults) {
+        // Filter for printers and update the devices list
+        devices = scanResults.where((device) => 
           device.name != null && 
           (device.name!.toLowerCase().contains('printer') ||
            device.name!.toLowerCase().contains('pos') ||
-           device.name!.toLowerCase().contains('receipt'))
+           device.name!.toLowerCase().contains('receipt') ||
+           device.name!.toLowerCase().contains('thermal'))
         ).toList();
       });
       
@@ -66,10 +67,11 @@ class PrinterService {
       }
 
       // Generate receipt content
+      Map<String, dynamic> config = {};
       List<LineText> receiptLines = _generateReceiptContent(order);
       
-      // Print the receipt
-      await bluetoothPrint.printReceipt(receiptLines);
+      // Print the receipt with correct parameters
+      await bluetoothPrint.printReceipt(config, receiptLines);
       
     } catch (e) {
       print('Error printing order: $e');
@@ -250,7 +252,15 @@ class PrinterService {
       
       lines.add(LineText(
         type: LineText.TYPE_TEXT,
-        content: '$priceString $totalString',
+        content: '$priceString',
+        weight: 0,
+        align: LineText.ALIGN_LEFT,
+        linefeed: 1,
+      ));
+      
+      lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: 'Total: $totalString',
         weight: 0,
         align: LineText.ALIGN_RIGHT,
         linefeed: 1,
@@ -369,67 +379,151 @@ class PrinterService {
   }
 
   // Method to show printer selection dialog
-  static Future<void> showPrinterSelectionDialog(context) async {
+  static Future<void> showPrinterSelectionDialog(BuildContext context) async {
     List<BluetoothDevice> devices = await getAvailablePrinters();
     
     if (devices.isEmpty) {
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('No Printers Found'),
+              content: const Text('No Bluetooth printers were found. Please make sure your printer is turned on and in pairing mode.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+      return;
+    }
+
+    if (context.mounted) {
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('No Printers Found'),
-            content: Text('No Bluetooth printers were found. Please make sure your printer is turned on and in pairing mode.'),
+            title: const Text('Select Printer'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: devices.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(devices[index].name ?? 'Unknown Device'),
+                    subtitle: Text(devices[index].address ?? ''),
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      bool connected = await connectToPrinter(devices[index]);
+                      if (context.mounted) {
+                        if (connected) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Connected to ${devices[index].name}')),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Failed to connect to printer')),
+                          );
+                        }
+                      }
+                    },
+                  );
+                },
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text('OK'),
+                child: const Text('Cancel'),
               ),
             ],
           );
         },
       );
-      return;
     }
+  }
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Select Printer'),
-          content: Container(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: devices.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(devices[index].name ?? 'Unknown Device'),
-                  subtitle: Text(devices[index].address ?? ''),
-                  onTap: () async {
-                    Navigator.of(context).pop();
-                    bool connected = await connectToPrinter(devices[index]);
-                    if (connected) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Connected to ${devices[index].name}')),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to connect to printer')),
-                      );
-                    }
-                  },
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
+  // Test print method
+  static Future<void> testPrint() async {
+    try {
+      bool isConnected = await bluetoothPrint.isConnected ?? false;
+      
+      if (!isConnected) {
+        throw Exception('No printer connected. Please connect to a Bluetooth printer first.');
+      }
+
+      Map<String, dynamic> config = {};
+      
+      List<LineText> testLines = [
+        LineText(
+          type: LineText.TYPE_TEXT,
+          content: '================================',
+          weight: 1,
+          align: LineText.ALIGN_CENTER,
+          linefeed: 1,
+        ),
+        LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'CURRY KING',
+          weight: 2,
+          align: LineText.ALIGN_CENTER,
+          linefeed: 1,
+        ),
+        LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'INDIAN CUISINE',
+          weight: 1,
+          align: LineText.ALIGN_CENTER,
+          linefeed: 1,
+        ),
+        LineText(
+          type: LineText.TYPE_TEXT,
+          content: '================================',
+          weight: 1,
+          align: LineText.ALIGN_CENTER,
+          linefeed: 1,
+        ),
+        LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'PRINTER TEST',
+          weight: 1,
+          align: LineText.ALIGN_CENTER,
+          linefeed: 2,
+        ),
+        LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'This is a test print.',
+          weight: 0,
+          align: LineText.ALIGN_LEFT,
+          linefeed: 1,
+        ),
+        LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'Date: ${DateTime.now().toString().substring(0, 19)}',
+          weight: 0,
+          align: LineText.ALIGN_LEFT,
+          linefeed: 1,
+        ),
+        LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'Test completed successfully!',
+          weight: 1,
+          align: LineText.ALIGN_CENTER,
+          linefeed: 3,
+        ),
+      ];
+
+      await bluetoothPrint.printReceipt(config, testLines);
+      
+    } catch (e) {
+      print('Error in test print: $e');
+      throw e;
+    }
   }
 }

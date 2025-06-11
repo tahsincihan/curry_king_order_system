@@ -4,6 +4,8 @@ import 'package:bluetooth_print/bluetooth_print_model.dart';
 import '../services/printer_service.dart';
 
 class PrinterSettingsScreen extends StatefulWidget {
+  const PrinterSettingsScreen({Key? key}) : super(key: key);
+
   @override
   _PrinterSettingsScreenState createState() => _PrinterSettingsScreenState();
 }
@@ -47,13 +49,15 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
       _devices.clear();
     });
 
-    bluetoothPrint.startScan(timeout: Duration(seconds: 10));
+    bluetoothPrint.startScan(timeout: const Duration(seconds: 10));
 
-    Future.delayed(Duration(seconds: 10), () {
-      setState(() {
-        _isScanning = false;
-      });
-      bluetoothPrint.stopScan();
+    Future.delayed(const Duration(seconds: 10), () {
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+        });
+        bluetoothPrint.stopScan();
+      }
     });
   }
 
@@ -66,7 +70,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
 
   void _connectToDevice(BluetoothDevice device) async {
     if (_isConnected) {
-      await _disconnect();
+      _disconnect();
     }
 
     try {
@@ -74,19 +78,23 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
       setState(() {
         _connectedDevice = device;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Connected to ${device.name}'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Connected to ${device.name}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to connect: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to connect: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -96,115 +104,59 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
       setState(() {
         _connectedDevice = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Disconnected from printer'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Disconnected from printer'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to disconnect: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to disconnect: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   void _testPrint() async {
     if (!_isConnected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please connect to a printer first'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please connect to a printer first'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return;
     }
 
     try {
-      List<LineText> testLines = [
-        LineText(
-          type: LineText.TYPE_TEXT,
-          content: '================================',
-          weight: 1,
-          align: LineText.ALIGN_CENTER,
-          linefeed: 1,
-        ),
-        LineText(
-          type: LineText.TYPE_TEXT,
-          content: 'CURRY KING',
-          weight: 2,
-          align: LineText.ALIGN_CENTER,
-          linefeed: 1,
-        ),
-        LineText(
-          type: LineText.TYPE_TEXT,
-          content: 'INDIAN CUISINE',
-          weight: 1,
-          align: LineText.ALIGN_CENTER,
-          linefeed: 1,
-        ),
-        LineText(
-          type: LineText.TYPE_TEXT,
-          content: '================================',
-          weight: 1,
-          align: LineText.ALIGN_CENTER,
-          linefeed: 1,
-        ),
-        LineText(
-          type: LineText.TYPE_TEXT,
-          content: 'PRINTER TEST',
-          weight: 1,
-          align: LineText.ALIGN_CENTER,
-          linefeed: 2,
-        ),
-        LineText(
-          type: LineText.TYPE_TEXT,
-          content: 'This is a test print.',
-          weight: 0,
-          align: LineText.ALIGN_LEFT,
-          linefeed: 1,
-        ),
-        LineText(
-          type: LineText.TYPE_TEXT,
-          content: 'Date: ${DateTime.now().toString().substring(0, 19)}',
-          weight: 0,
-          align: LineText.ALIGN_LEFT,
-          linefeed: 1,
-        ),
-        LineText(
-          type: LineText.TYPE_TEXT,
-          content: 'Printer: ${_connectedDevice?.name ?? 'Unknown'}',
-          weight: 0,
-          align: LineText.ALIGN_LEFT,
-          linefeed: 2,
-        ),
-        LineText(
-          type: LineText.TYPE_TEXT,
-          content: 'Test completed successfully!',
-          weight: 1,
-          align: LineText.ALIGN_CENTER,
-          linefeed: 3,
-        ),
-      ];
-
-      await bluetoothPrint.printReceipt(testLines);
+      await PrinterService.testPrint();
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Test print sent successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Test print sent successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Test print failed: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Test print failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -212,7 +164,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Printer Settings'),
+        title: const Text('Printer Settings'),
         backgroundColor: Colors.orange[600],
         foregroundColor: Colors.white,
       ),
@@ -221,7 +173,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
           // Connection Status
           Container(
             width: double.infinity,
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             color: _isConnected ? Colors.green[50] : Colors.red[50],
             child: Row(
               children: [
@@ -230,7 +182,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                   color: _isConnected ? Colors.green : Colors.red,
                   size: 24,
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,16 +213,16 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
                     ),
-                    child: Text('Test Print'),
+                    child: const Text('Test Print'),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: _disconnect,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
                     ),
-                    child: Text('Disconnect'),
+                    child: const Text('Disconnect'),
                   ),
                 ],
               ],
@@ -279,10 +231,10 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
 
           // Scan Controls
           Container(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Expanded(
+                const Expanded(
                   child: Text(
                     'Available Bluetooth Printers',
                     style: TextStyle(
@@ -307,8 +259,8 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
           // Scanning indicator
           if (_isScanning)
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: const Row(
                 children: [
                   SizedBox(
                     width: 20,
@@ -333,7 +285,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                           size: 64,
                           color: Colors.grey[400],
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         Text(
                           _isScanning
                               ? 'Scanning for printers...'
@@ -354,7 +306,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                       bool isConnectedDevice = _connectedDevice?.address == device.address;
                       
                       return Card(
-                        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         child: ListTile(
                           leading: Icon(
                             Icons.print,
@@ -368,14 +320,14 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                           ),
                           subtitle: Text(device.address ?? ''),
                           trailing: isConnectedDevice
-                              ? Icon(Icons.check_circle, color: Colors.green)
+                              ? const Icon(Icons.check_circle, color: Colors.green)
                               : ElevatedButton(
                                   onPressed: () => _connectToDevice(device),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.orange[600],
                                     foregroundColor: Colors.white,
                                   ),
-                                  child: Text('Connect'),
+                                  child: const Text('Connect'),
                                 ),
                         ),
                       );
@@ -385,9 +337,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
 
           // Instructions
           Container(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             color: Colors.grey[50],
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(

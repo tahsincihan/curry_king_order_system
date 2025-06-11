@@ -5,11 +5,13 @@ import '../model/order_model.dart';
 import '../services/printer_service.dart';
 
 class OrderSummaryScreen extends StatelessWidget {
+  const OrderSummaryScreen({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Order Summary'),
+        title: const Text('Order Summary'),
         backgroundColor: Colors.orange[600],
         foregroundColor: Colors.white,
       ),
@@ -21,14 +23,14 @@ class OrderSummaryScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Order Type Header
                       Card(
                         child: Padding(
-                          padding: EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -41,7 +43,7 @@ class OrderSummaryScreen extends StatelessWidget {
                                     color: Colors.orange[600],
                                     size: 24,
                                   ),
-                                  SizedBox(width: 8),
+                                  const SizedBox(width: 8),
                                   Text(
                                     order.orderType == 'takeaway' ? 'TAKEAWAY ORDER' : 'DINE IN ORDER',
                                     style: TextStyle(
@@ -52,7 +54,7 @@ class OrderSummaryScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Text(
                                 'Order Time: ${_formatDateTime(order.orderTime)}',
                                 style: TextStyle(color: Colors.grey[600]),
@@ -62,24 +64,24 @@ class OrderSummaryScreen extends StatelessWidget {
                         ),
                       ),
                       
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       
                       // Customer Information
                       if (order.orderType == 'takeaway') ...[
                         Card(
                           child: Padding(
-                            padding: EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                const Text(
                                   'Customer Information',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                SizedBox(height: 12),
+                                const SizedBox(height: 12),
                                 _buildInfoRow('Name', order.customerInfo.name ?? 'N/A'),
                                 if (order.customerInfo.isDelivery) ...[
                                   _buildInfoRow('Type', 'Delivery'),
@@ -99,18 +101,18 @@ class OrderSummaryScreen extends StatelessWidget {
                         // Dine In Information
                         Card(
                           child: Padding(
-                            padding: EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                const Text(
                                   'Table Information',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                SizedBox(height: 12),
+                                const SizedBox(height: 12),
                                 _buildInfoRow('Table Number', order.tableNumber ?? 'N/A'),
                               ],
                             ),
@@ -118,68 +120,68 @@ class OrderSummaryScreen extends StatelessWidget {
                         ),
                       ],
                       
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       
                       // Order Items
                       Card(
                         child: Padding(
-                          padding: EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Order Items',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              SizedBox(height: 12),
+                              const SizedBox(height: 12),
                               ...order.items.map((item) => _buildOrderItem(item)),
                             ],
                           ),
                         ),
                       ),
                       
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       
                       // Payment Information
                       Card(
                         child: Padding(
-                          padding: EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Payment Information',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              SizedBox(height: 12),
+                              const SizedBox(height: 12),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('Subtotal:'),
+                                  const Text('Subtotal:'),
                                   Text('£${order.subtotal.toStringAsFixed(2)}'),
                                 ],
                               ),
                               if (order.deliveryCharge > 0) ...[
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('Delivery Charge:'),
+                                    const Text('Delivery Charge:'),
                                     Text('£${order.deliveryCharge.toStringAsFixed(2)}'),
                                   ],
                                 ),
                               ],
-                              Divider(),
+                              const Divider(),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
+                                  const Text(
                                     'Total:',
                                     style: TextStyle(
                                       fontSize: 18,
@@ -196,14 +198,14 @@ class OrderSummaryScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('Payment Method:'),
+                                  const Text('Payment Method:'),
                                   Text(
                                     order.paymentMethod.toUpperCase(),
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -218,7 +220,7 @@ class OrderSummaryScreen extends StatelessWidget {
               
               // Print Button
               Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
                     Expanded(
@@ -229,15 +231,15 @@ class OrderSummaryScreen extends StatelessWidget {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.orange[600],
                           side: BorderSide(color: Colors.orange[600]!),
-                          padding: EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: Text(
+                        child: const Text(
                           'Back to Edit',
                           style: TextStyle(fontSize: 16),
                         ),
                       ),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       flex: 2,
                       child: ElevatedButton.icon(
@@ -245,10 +247,10 @@ class OrderSummaryScreen extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange[600],
                           foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        icon: Icon(Icons.print),
-                        label: Text(
+                        icon: const Icon(Icons.print),
+                        label: const Text(
                           'Print Order',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
@@ -266,7 +268,7 @@ class OrderSummaryScreen extends StatelessWidget {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -274,7 +276,7 @@ class OrderSummaryScreen extends StatelessWidget {
             width: 100,
             child: Text(
               '$label:',
-              style: TextStyle(fontWeight: FontWeight.w500),
+              style: const TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
           Expanded(
@@ -287,21 +289,21 @@ class OrderSummaryScreen extends StatelessWidget {
 
   Widget _buildOrderItem(OrderItem item) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Text(
             '${item.quantity}x',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   item.menuItem.name,
-                  style: TextStyle(fontWeight: FontWeight.w500),
+                  style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
                 if (item.specialInstructions?.isNotEmpty == true)
                   Text(
@@ -317,7 +319,7 @@ class OrderSummaryScreen extends StatelessWidget {
           ),
           Text(
             '£${item.totalPrice.toStringAsFixed(2)}',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -333,44 +335,48 @@ class OrderSummaryScreen extends StatelessWidget {
       await PrinterService.printOrder(order);
       
       // Show success message and navigate back to home
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Order Printed Successfully'),
-            content: Text('The order has been sent to the printer.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  Navigator.of(context).popUntil((route) => route.isFirst); // Go to home
-                  Provider.of<OrderProvider>(context, listen: false).clearOrder();
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              title: const Text('Order Printed Successfully'),
+              content: const Text('The order has been sent to the printer.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(); // Close dialog
+                    Navigator.of(context).popUntil((route) => route.isFirst); // Go to home
+                    Provider.of<OrderProvider>(context, listen: false).clearOrder();
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
     } catch (e) {
       // Show error message
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Print Error'),
-            content: Text('Failed to print order: ${e.toString()}'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              title: const Text('Print Error'),
+              content: Text('Failed to print order: ${e.toString()}'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
     }
   }
 }
