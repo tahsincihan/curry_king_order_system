@@ -99,7 +99,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
           children: [
             // Categories Sidebar - RESPONSIVE WIDTH
             Container(
-              width: isSmallScreen ? screenWidth * 0.35 : 180, // Responsive width
+              width: isSmallScreen ? screenWidth * 0.30 : 140, // Reduced width
               color: Colors.grey[100],
               child: ListView.builder(
                 itemCount: MenuData.getCategories().length,
@@ -108,27 +108,27 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                   bool isSelected = category == selectedCategory;
                   
                   return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2), // Reduced margin
+                    margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 1), // Minimal margin
                     child: Material(
                       color: isSelected ? Colors.orange[700] : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(6),
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(6),
                         onTap: () {
                           setState(() {
                             selectedCategory = category;
                           });
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12), // Reduced padding
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8), // Minimal padding
                           child: Text(
                             category,
                             style: TextStyle(
                               color: isSelected ? Colors.white : Colors.grey[700],
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: isSmallScreen ? 13 : 14, // Smaller font on small screens
+                              fontSize: 12, // Smaller font
                             ),
-                            maxLines: 2, // Allow wrapping for long category names
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -146,7 +146,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
             
             // Order Summary Sidebar - RESPONSIVE WIDTH
             Container(
-              width: isSmallScreen ? screenWidth * 0.35 : 220, // Responsive width
+              width: isSmallScreen ? screenWidth * 0.30 : 180, // Reduced width
               color: Colors.grey[50],
               child: _buildOrderSummary(),
             ),
@@ -157,49 +157,36 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
   }
 
   Widget _buildMenuItems() {
-    // Debug print to check the selected category
     print('Building menu items for category: $selectedCategory');
     
     List<MenuItem> items = MenuData.getItemsByCategory(selectedCategory);
-    
-    // Debug print to check if items are loaded
     print('Found ${items.length} items for $selectedCategory');
     
-    // Get screen size for responsive layout
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-    
     return Container(
-      padding: const EdgeInsets.all(8), // Reduced padding
+      padding: const EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             selectedCategory,
             style: TextStyle(
-              fontSize: 20, // Smaller font
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.grey[800],
             ),
           ),
-          const SizedBox(height: 8), // Reduced spacing
+          const SizedBox(height: 8),
           Expanded(
             child: items.isEmpty 
             ? Center(child: Text('No items in this category', 
                 style: TextStyle(color: Colors.grey[600], fontSize: 16)))
-            : GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: isSmallScreen ? 1 : 2, // 1 column on small screens
-                childAspectRatio: isSmallScreen ? 2.0 : 1.5, // Wider cards on small screens
-                crossAxisSpacing: 8, // Reduced spacing
-                mainAxisSpacing: 8, // Reduced spacing
+            : ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  MenuItem item = items[index];
+                  return _buildMenuItem(item);
+                },
               ),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                MenuItem item = items[index];
-                return _buildMenuItem(item);
-              },
-            ),
           ),
         ],
       ),
@@ -209,6 +196,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
   Widget _buildMenuItem(MenuItem item) {
     return Card(
       elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
       child: InkWell(
         onTap: () {
           Provider.of<OrderProvider>(context, listen: false).addItem(item);
@@ -221,42 +209,35 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
             );
           }
         },
-        child: Container(
-          padding: const EdgeInsets.all(8), // Reduced padding
+        child: Padding(
+          padding: const EdgeInsets.all(8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                item.name,
-                style: const TextStyle(
-                  fontSize: 14, // Smaller font
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (item.description != null) ...[
-                const SizedBox(height: 4), // Reduced spacing
-                Expanded(
-                  child: Text(
-                    item.description!,
-                    style: TextStyle(
-                      fontSize: 11, // Smaller font
-                      color: Colors.grey[600],
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+              // Item name with constraints
+              SizedBox(
+                width: double.infinity,
+                child: Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-              const Spacer(),
+              ),
+              const SizedBox(height: 4),
+              
+              // Price and add button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     '£${item.price.toStringAsFixed(2)}',
                     style: TextStyle(
-                      fontSize: 14, // Smaller font
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.orange[700],
                     ),
@@ -264,7 +245,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                   Icon(
                     Icons.add_circle,
                     color: Colors.orange[700],
-                    size: 20, // Smaller icon
+                    size: 20,
                   ),
                 ],
               ),
@@ -281,7 +262,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
     final isSmallScreen = screenWidth < 600;
     
     return Container(
-      padding: const EdgeInsets.all(16), // Reduced padding
+      padding: const EdgeInsets.all(12),
       child: Consumer<OrderProvider>(
         builder: (context, orderProvider, child) {
           return Column(
@@ -291,17 +272,20 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                     onPressed: () {
                       setState(() {
                         showTableForm = false;
                       });
                     },
                   ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Table Information',
                       style: TextStyle(
-                        fontSize: 20, // Smaller font
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey[800],
                       ),
@@ -310,31 +294,30 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               
               // Table Number Input
-              SizedBox(
-                width: isSmallScreen ? double.infinity : 300,
-                child: TextFormField(
-                  controller: tableController,
-                  decoration: const InputDecoration(
-                    labelText: 'Table Number *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.table_restaurant),
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    orderProvider.setTableNumber(value);
-                  },
+              TextFormField(
+                controller: tableController,
+                decoration: const InputDecoration(
+                  labelText: 'Table Number *',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.table_restaurant, size: 18),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  orderProvider.setTableNumber(value);
+                },
               ),
               
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               
               // Payment Method
               const Text('Payment Method:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              Row(
+              Wrap(
+                spacing: 8,
                 children: [
                   ChoiceChip(
                     label: const Text('Cash'),
@@ -343,7 +326,6 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                       if (selected) orderProvider.setPaymentMethod('cash');
                     },
                   ),
-                  const SizedBox(width: 8),
                   ChoiceChip(
                     label: const Text('Card'),
                     selected: orderProvider.paymentMethod == 'card',
@@ -358,7 +340,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
               
               // Continue Button
               SizedBox(
-                width: isSmallScreen ? double.infinity : 300,
+                width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: tableController.text.isNotEmpty ? () async {
@@ -394,18 +376,18 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
         return Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(8), // Reduced padding
+              padding: const EdgeInsets.all(4), // Minimal padding
               color: Colors.orange[700],
               child: const Row(
                 children: [
-                  Icon(Icons.receipt, color: Colors.white, size: 18), // Smaller icon
-                  SizedBox(width: 4), // Reduced spacing
+                  Icon(Icons.receipt, color: Colors.white, size: 14), // Smaller icon
+                  SizedBox(width: 2), // Minimal spacing
                   Expanded(
                     child: Text(
                       'Order Summary',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14, // Smaller font
+                        fontSize: 12, // Smaller font
                         fontWeight: FontWeight.bold,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -421,7 +403,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                         'No items added',
                         style: TextStyle(
                           color: Colors.grey[500],
-                          fontSize: 14,
+                          fontSize: 12,
                         ),
                       ),
                     )
@@ -430,9 +412,9 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                       itemBuilder: (context, index) {
                         OrderItem orderItem = orderProvider.orderItems[index];
                         return Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), // Reduced margin
+                          margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2), // Minimal margin
                           child: Padding(
-                            padding: const EdgeInsets.all(6), // Reduced padding
+                            padding: const EdgeInsets.all(4), // Minimal padding
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -444,19 +426,17 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                                         orderItem.menuItem.name,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 12, // Smaller font
+                                          fontSize: 11, // Smaller font
                                         ),
-                                        maxLines: 2,
+                                        maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, size: 16), // Smaller icon
-                                      onPressed: () {
+                                    InkWell(
+                                      onTap: () {
                                         orderProvider.removeItem(index);
                                       },
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(),
+                                      child: const Icon(Icons.close, size: 14),
                                     ),
                                   ],
                                 ),
@@ -465,22 +445,21 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.remove_circle_outline, size: 16), // Smaller icon
-                                          onPressed: orderItem.quantity > 1
+                                        InkWell(
+                                          onTap: orderItem.quantity > 1
                                               ? () => orderProvider.updateItemQuantity(
                                                   index, orderItem.quantity - 1)
                                               : null,
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
+                                          child: const Icon(Icons.remove_circle_outline, size: 14),
                                         ),
-                                        Text('${orderItem.quantity}', style: const TextStyle(fontSize: 12)), // Smaller font
-                                        IconButton(
-                                          icon: const Icon(Icons.add_circle_outline, size: 16), // Smaller icon
-                                          onPressed: () => orderProvider.updateItemQuantity(
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                                          child: Text('${orderItem.quantity}', style: const TextStyle(fontSize: 11)),
+                                        ),
+                                        InkWell(
+                                          onTap: () => orderProvider.updateItemQuantity(
                                               index, orderItem.quantity + 1),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
+                                          child: const Icon(Icons.add_circle_outline, size: 14),
                                         ),
                                       ],
                                     ),
@@ -489,7 +468,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.orange[700],
-                                        fontSize: 12, // Smaller font
+                                        fontSize: 11, // Smaller font
                                       ),
                                     ),
                                   ],
@@ -503,19 +482,19 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
             ),
             if (orderProvider.orderItems.isNotEmpty) ...[
               Container(
-                padding: const EdgeInsets.all(8), // Reduced padding
+                padding: const EdgeInsets.all(4), // Minimal padding
                 color: Colors.white,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       'Total:',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold), // Smaller font
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold), // Smaller font
                     ),
                     Text(
                       '£${orderProvider.total.toStringAsFixed(2)}',
                       style: TextStyle(
-                        fontSize: 14, // Smaller font
+                        fontSize: 12, // Smaller font
                         fontWeight: FontWeight.bold,
                         color: Colors.orange[700],
                       ),

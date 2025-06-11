@@ -92,7 +92,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
           children: [
             // Categories Sidebar - RESPONSIVE WIDTH
             Container(
-              width: isSmallScreen ? screenWidth * 0.35 : 180, // Responsive width
+              width: isSmallScreen ? screenWidth * 0.30 : 140, // Reduced width
               color: Colors.grey[100],
               child: ListView.builder(
                 itemCount: MenuData.getCategories().length,
@@ -101,27 +101,27 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   bool isSelected = category == selectedCategory;
                   
                   return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2), // Reduced margin
+                    margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 1), // Minimal margin
                     child: Material(
                       color: isSelected ? Colors.orange[600] : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(6),
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(6),
                         onTap: () {
                           setState(() {
                             selectedCategory = category;
                           });
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12), // Reduced padding
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8), // Minimal padding
                           child: Text(
                             category,
                             style: TextStyle(
                               color: isSelected ? Colors.white : Colors.grey[700],
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: isSmallScreen ? 13 : 14, // Smaller font on small screens
+                              fontSize: 12, // Smaller font
                             ),
-                            maxLines: 2, // Allow wrapping for long category names
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -139,25 +139,25 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
             
             // Order Summary Sidebar - RESPONSIVE WIDTH
             Container(
-              width: isSmallScreen ? screenWidth * 0.35 : 220, // Responsive width
+              width: isSmallScreen ? screenWidth * 0.30 : 180, // Reduced width
               color: Colors.grey[50],
               child: Consumer<OrderProvider>(
                 builder: (context, orderProvider, child) {
                   return Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8), // Reduced padding
+                        padding: const EdgeInsets.all(4), // Minimal padding
                         color: Colors.orange[600],
                         child: const Row(
                           children: [
-                            Icon(Icons.receipt, color: Colors.white, size: 18), // Smaller icon
-                            SizedBox(width: 4), // Reduced spacing
+                            Icon(Icons.receipt, color: Colors.white, size: 14), // Smaller icon
+                            SizedBox(width: 2), // Minimal spacing
                             Expanded(
                               child: Text(
                                 'Order Summary',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 14, // Smaller font
+                                  fontSize: 12, // Smaller font
                                   fontWeight: FontWeight.bold,
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -173,7 +173,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                                   'No items added',
                                   style: TextStyle(
                                     color: Colors.grey[500],
-                                    fontSize: 14,
+                                    fontSize: 12,
                                   ),
                                 ),
                               )
@@ -182,9 +182,9 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                                 itemBuilder: (context, index) {
                                   OrderItem orderItem = orderProvider.orderItems[index];
                                   return Card(
-                                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), // Reduced margin
+                                    margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2), // Minimal margin
                                     child: Padding(
-                                      padding: const EdgeInsets.all(6), // Reduced padding
+                                      padding: const EdgeInsets.all(4), // Minimal padding
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
@@ -196,19 +196,17 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                                                   orderItem.menuItem.name,
                                                   style: const TextStyle(
                                                     fontWeight: FontWeight.bold,
-                                                    fontSize: 12, // Smaller font
+                                                    fontSize: 11, // Smaller font
                                                   ),
-                                                  maxLines: 2,
+                                                  maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
                                               ),
-                                              IconButton(
-                                                icon: const Icon(Icons.delete, size: 16), // Smaller icon
-                                                onPressed: () {
+                                              InkWell(
+                                                onTap: () {
                                                   orderProvider.removeItem(index);
                                                 },
-                                                padding: EdgeInsets.zero,
-                                                constraints: const BoxConstraints(),
+                                                child: const Icon(Icons.close, size: 14),
                                               ),
                                             ],
                                           ),
@@ -217,22 +215,21 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                                             children: [
                                               Row(
                                                 children: [
-                                                  IconButton(
-                                                    icon: const Icon(Icons.remove_circle_outline, size: 16), // Smaller icon
-                                                    onPressed: orderItem.quantity > 1
+                                                  InkWell(
+                                                    onTap: orderItem.quantity > 1
                                                         ? () => orderProvider.updateItemQuantity(
                                                             index, orderItem.quantity - 1)
                                                         : null,
-                                                    padding: EdgeInsets.zero,
-                                                    constraints: const BoxConstraints(),
+                                                    child: const Icon(Icons.remove_circle_outline, size: 14),
                                                   ),
-                                                  Text('${orderItem.quantity}', style: const TextStyle(fontSize: 12)), // Smaller font
-                                                  IconButton(
-                                                    icon: const Icon(Icons.add_circle_outline, size: 16), // Smaller icon
-                                                    onPressed: () => orderProvider.updateItemQuantity(
+                                                  Padding(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                                    child: Text('${orderItem.quantity}', style: const TextStyle(fontSize: 11)),
+                                                  ),
+                                                  InkWell(
+                                                    onTap: () => orderProvider.updateItemQuantity(
                                                         index, orderItem.quantity + 1),
-                                                    padding: EdgeInsets.zero,
-                                                    constraints: const BoxConstraints(),
+                                                    child: const Icon(Icons.add_circle_outline, size: 14),
                                                   ),
                                                 ],
                                               ),
@@ -241,7 +238,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   color: Colors.orange[700],
-                                                  fontSize: 12, // Smaller font
+                                                  fontSize: 11, // Smaller font
                                                 ),
                                               ),
                                             ],
@@ -255,45 +252,45 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                       ),
                       if (orderProvider.orderItems.isNotEmpty) ...[
                         Container(
-                          padding: const EdgeInsets.all(8), // Reduced padding
+                          padding: const EdgeInsets.all(4), // Minimal padding
                           color: Colors.white,
                           child: Column(
                             children: [
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Subtotal:', style: TextStyle(fontSize: 12)), // Smaller font
+                                  const Text('Subtotal:', style: TextStyle(fontSize: 11)), // Smaller font
                                   Text(
                                     '£${orderProvider.subtotal.toStringAsFixed(2)}',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold), // Smaller font
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold), // Smaller font
                                   ),
                                 ],
                               ),
                               if (orderProvider.deliveryCharge > 0) ...[
-                                const SizedBox(height: 4), // Reduced spacing
+                                const SizedBox(height: 2), // Minimal spacing
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('Delivery:', style: TextStyle(fontSize: 12)), // Smaller font
+                                    const Text('Delivery:', style: TextStyle(fontSize: 11)), // Smaller font
                                     Text(
                                       '£${orderProvider.deliveryCharge.toStringAsFixed(2)}',
-                                      style: const TextStyle(fontSize: 12), // Smaller font
+                                      style: const TextStyle(fontSize: 11), // Smaller font
                                     ),
                                   ],
                                 ),
                               ],
-                              const Divider(),
+                              const Divider(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
                                     'Total:',
-                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold), // Smaller font
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold), // Smaller font
                                   ),
                                   Text(
                                     '£${orderProvider.total.toStringAsFixed(2)}',
                                     style: TextStyle(
-                                      fontSize: 14, // Smaller font
+                                      fontSize: 12, // Smaller font
                                       fontWeight: FontWeight.bold,
                                       color: Colors.orange[700],
                                     ),
@@ -316,49 +313,36 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   }
 
   Widget _buildMenuItems() {
-    // Debug print to check the selected category
     print('Building menu items for category: $selectedCategory');
     
     List<MenuItem> items = MenuData.getItemsByCategory(selectedCategory);
-    
-    // Debug print to check if items are loaded
     print('Found ${items.length} items for $selectedCategory');
     
-    // Get screen size for responsive layout
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-    
     return Container(
-      padding: const EdgeInsets.all(8), // Reduced padding
+      padding: const EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             selectedCategory,
             style: TextStyle(
-              fontSize: 20, // Smaller font
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.grey[800],
             ),
           ),
-          const SizedBox(height: 8), // Reduced spacing
+          const SizedBox(height: 8),
           Expanded(
             child: items.isEmpty 
             ? Center(child: Text('No items in this category', 
                 style: TextStyle(color: Colors.grey[600], fontSize: 16)))
-            : GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: isSmallScreen ? 1 : 2, // 1 column on small screens
-                childAspectRatio: isSmallScreen ? 2.0 : 1.5, // Wider cards on small screens
-                crossAxisSpacing: 8, // Reduced spacing
-                mainAxisSpacing: 8, // Reduced spacing
+            : ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  MenuItem item = items[index];
+                  return _buildMenuItem(item);
+                },
               ),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                MenuItem item = items[index];
-                return _buildMenuItem(item);
-              },
-            ),
           ),
         ],
       ),
@@ -368,6 +352,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   Widget _buildMenuItem(MenuItem item) {
     return Card(
       elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
       child: InkWell(
         onTap: () {
           Provider.of<OrderProvider>(context, listen: false).addItem(item);
@@ -380,42 +365,35 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
             );
           }
         },
-        child: Container(
-          padding: const EdgeInsets.all(8), // Reduced padding
+        child: Padding(
+          padding: const EdgeInsets.all(8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                item.name,
-                style: const TextStyle(
-                  fontSize: 14, // Smaller font
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (item.description != null) ...[
-                const SizedBox(height: 4), // Reduced spacing
-                Expanded(
-                  child: Text(
-                    item.description!,
-                    style: TextStyle(
-                      fontSize: 11, // Smaller font
-                      color: Colors.grey[600],
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+              // Item name with constraints
+              SizedBox(
+                width: double.infinity,
+                child: Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-              const Spacer(),
+              ),
+              const SizedBox(height: 4),
+              
+              // Price and add button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     '£${item.price.toStringAsFixed(2)}',
                     style: TextStyle(
-                      fontSize: 14, // Smaller font
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.orange[700],
                     ),
@@ -423,7 +401,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   Icon(
                     Icons.add_circle,
                     color: Colors.orange[600],
-                    size: 20, // Smaller icon
+                    size: 20,
                   ),
                 ],
               ),
@@ -435,10 +413,12 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   }
 
   Widget _buildCustomerForm() {
-    // This method stays mostly the same but with adjusted padding/spacing
-    // as needed for responsive design
+    // Get screen size for responsive layout
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+    
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Consumer<OrderProvider>(
         builder: (context, orderProvider, child) {
           return Column(
@@ -448,32 +428,34 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                     onPressed: () {
                       setState(() {
                         showCustomerForm = false;
                       });
                     },
                   ),
-                  Text(
-                    'Customer Details',
-                    style: TextStyle(
-                      fontSize: 20, // Smaller font
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Customer Details',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16), // Reduced spacing
+              const SizedBox(height: 16),
               
-              // Rest of form code remains similar with minor adjustments
-              // for spacing and responsive layout if needed
-              // ...
-
               // Collection/Delivery Toggle
-              Row(
+              Wrap(
+                spacing: 8,
                 children: [
-                  const Text('Order Type: ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  const Text('Order Type:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                   ChoiceChip(
                     label: const Text('Collection'),
                     selected: !orderProvider.customerInfo.isDelivery,
@@ -484,14 +466,13 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                       }
                     },
                   ),
-                  const SizedBox(width: 8),
                   ChoiceChip(
                     label: const Text('Delivery'),
                     selected: orderProvider.customerInfo.isDelivery,
                     onSelected: (selected) {
                       if (selected) {
                         orderProvider.updateCustomerInfo(isDelivery: true);
-                        orderProvider.setDeliveryCharge(2.50); // You can adjust delivery charge
+                        orderProvider.setDeliveryCharge(2.50);
                       }
                     },
                   ),
@@ -505,6 +486,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Customer Name *',
                   border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 onChanged: (value) {
                   orderProvider.updateCustomerInfo(name: value);
@@ -512,18 +494,19 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
               ),
               
               if (orderProvider.customerInfo.isDelivery) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 TextFormField(
                   decoration: const InputDecoration(
                     labelText: 'Address *',
                     border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   ),
                   maxLines: 3,
                   onChanged: (value) {
                     orderProvider.updateCustomerInfo(address: value);
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -531,18 +514,20 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Postcode *',
                           border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         ),
                         onChanged: (value) {
                           orderProvider.updateCustomerInfo(postcode: value);
                         },
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: TextFormField(
                         decoration: const InputDecoration(
-                          labelText: 'Phone Number *',
+                          labelText: 'Phone *',
                           border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         ),
                         keyboardType: TextInputType.phone,
                         onChanged: (value) {
@@ -553,11 +538,12 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   ],
                 ),
               ] else ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 TextFormField(
                   decoration: const InputDecoration(
-                    labelText: 'Phone Number (Optional)',
+                    labelText: 'Phone (Optional)',
                     border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   ),
                   keyboardType: TextInputType.phone,
                   onChanged: (value) {
@@ -571,7 +557,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
               // Payment Method
               const Text('Payment Method:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              Row(
+              Wrap(
+                spacing: 8,
                 children: [
                   ChoiceChip(
                     label: const Text('Cash'),
@@ -580,7 +567,6 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                       if (selected) orderProvider.setPaymentMethod('cash');
                     },
                   ),
-                  const SizedBox(width: 8),
                   ChoiceChip(
                     label: const Text('Card'),
                     selected: orderProvider.paymentMethod == 'card',
