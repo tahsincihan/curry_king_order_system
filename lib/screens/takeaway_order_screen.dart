@@ -18,7 +18,9 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   bool showCustomerForm = false;
   bool showSearch = false;
   final TextEditingController searchController = TextEditingController();
+  final FocusNode searchFocusNode = FocusNode();
   List<MenuItem> searchResults = [];
+  String lastSearchQuery = '';
   
   @override
   void initState() {
@@ -31,30 +33,63 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   @override
   void dispose() {
     searchController.dispose();
+    searchFocusNode.dispose();
     super.dispose();
   }
 
   void _performSearch(String query) {
+    lastSearchQuery = query;
+    
     if (query.isEmpty) {
       setState(() {
         searchResults = [];
-        showSearch = false;
       });
       return;
     }
 
     setState(() {
-      showSearch = true;
       searchResults = MenuData.getAllMenuItems()
           .where((item) => 
               item.name.toLowerCase().contains(query.toLowerCase()) ||
-              (item.description?.toLowerCase().contains(query.toLowerCase()) ?? false))
+              (item.description?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+              item.category.toLowerCase().contains(query.toLowerCase()))
           .toList();
+    });
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      showSearch = !showSearch;
+      if (showSearch) {
+        // Auto-focus search field when opened
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          searchFocusNode.requestFocus();
+        });
+      } else {
+        // Clear search when closing
+        searchController.clear();
+        searchResults.clear();
+        lastSearchQuery = '';
+      }
     });
   }
 
   // Handle back button press
   Future<bool> _onWillPop() async {
+    // If search is open, close it first
+    if (showSearch) {
+      _toggleSearch();
+      return false;
+    }
+    
+    // If customer form is shown, go back to menu
+    if (showCustomerForm) {
+      setState(() {
+        showCustomerForm = false;
+      });
+      return false;
+    }
+    
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
     
     // Check if there are items in the cart
@@ -97,7 +132,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
       onWillPop: _onWillPop,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Takeaway Order'),
+          title: Text(showSearch ? 'Search Dishes' : 'Takeaway Order'),
           backgroundColor: Colors.orange[600],
           foregroundColor: Colors.white,
           leading: IconButton(
@@ -110,16 +145,9 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () {
-                setState(() {
-                  showSearch = !showSearch;
-                  if (!showSearch) {
-                    searchController.clear();
-                    searchResults.clear();
-                  }
-                });
-              },
+              icon: Icon(showSearch ? Icons.close : Icons.search),
+              onPressed: _toggleSearch,
+              tooltip: showSearch ? 'Close Search' : 'Search',
             ),
             Consumer<OrderProvider>(
               builder: (context, orderProvider, child) {
@@ -182,76 +210,89 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
     return Column(
       children: [
         // Search bar
-        if (showSearch) ...[
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.orange[50],
-            child: TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                hintText: 'Search dishes...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    searchController.clear();
-                    _performSearch('');
-                  },
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              onChanged: _performSearch,
-            ),
-          ),
-        ],
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          height: showSearch ? 80 : 0,
+          child: showSearch
+              ? Container(
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.orange[50],
+                  child: TextField(
+                    controller: searchController,
+                    focusNode: searchFocusNode,
+                    decoration: InputDecoration(
+                      hintText: 'Search by name, description, or category...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                searchController.clear();
+                                _performSearch('');
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    onChanged: _performSearch,
+                    textInputAction: TextInputAction.search,
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
         
         // Horizontal category list (hidden when searching)
-        if (!showSearch) ...[
-          Container(
-            height: 48,
-            color: Colors.orange[50],
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: MenuData.getCategories().length,
-              itemBuilder: (context, index) {
-                String category = MenuData.getCategories()[index];
-                bool isSelected = category == selectedCategory;
-                
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        selectedCategory = category;
-                      });
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          height: showSearch ? 0 : 48,
+          child: !showSearch
+              ? Container(
+                  color: Colors.orange[50],
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: MenuData.getCategories().length,
+                    itemBuilder: (context, index) {
+                      String category = MenuData.getCategories()[index];
+                      bool isSelected = category == selectedCategory;
+                      
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              selectedCategory = category;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.orange[600] : Colors.transparent,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected ? Colors.orange[600]! : Colors.grey[400]!,
+                              ),
+                            ),
+                            child: Text(
+                              category,
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.grey[700],
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
                     },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.orange[600] : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected ? Colors.orange[600]! : Colors.grey[400]!,
-                        ),
-                      ),
-                      child: Text(
-                        category,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.grey[700],
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+                )
+              : const SizedBox.shrink(),
+        ),
         
         // Category title and items
         Expanded(
@@ -270,36 +311,65 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-            child: Text(
-              searchResults.isEmpty 
-                  ? searchController.text.isEmpty 
-                      ? 'Enter a search term'
-                      : 'No dishes found'
-                  : '${searchResults.length} dishes found',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
+          if (lastSearchQuery.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      searchResults.isEmpty 
+                          ? 'No dishes found for "$lastSearchQuery"'
+                          : '${searchResults.length} ${searchResults.length == 1 ? 'dish' : 'dishes'} found',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                  if (searchResults.isNotEmpty)
+                    TextButton(
+                      onPressed: () {
+                        searchController.clear();
+                        _performSearch('');
+                      },
+                      child: const Text('Clear'),
+                    ),
+                ],
               ),
             ),
-          ),
+          ],
           Expanded(
             child: searchResults.isEmpty 
                 ? Center(
-                    child: Text(
-                      searchController.text.isEmpty 
-                          ? 'Start typing to search for dishes'
-                          : 'No dishes match your search',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          lastSearchQuery.isEmpty ? Icons.search : Icons.search_off,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          lastSearchQuery.isEmpty 
+                              ? 'Start typing to search for dishes'
+                              : 'No dishes match your search.\nTry different keywords.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : ListView.builder(
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     itemCount: searchResults.length,
                     itemBuilder: (context, index) {
                       MenuItem item = searchResults[index];
-                      return _buildMenuItem(item);
+                      return _buildMenuItem(item, highlightSearch: true);
                     },
                   ),
           ),
@@ -318,13 +388,25 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-            child: Text(
-              selectedCategory,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
-              ),
+            child: Row(
+              children: [
+                Text(
+                  selectedCategory,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '(${items.length} ${items.length == 1 ? 'item' : 'items'})',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -344,13 +426,47 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
     );
   }
 
-  Widget _buildMenuItem(MenuItem item) {
+  Widget _buildMenuItem(MenuItem item, {bool highlightSearch = false}) {
+    // Helper to highlight search terms
+    Widget _highlightText(String text, {TextStyle? style}) {
+      if (!highlightSearch || lastSearchQuery.isEmpty) {
+        return Text(text, style: style);
+      }
+      
+      final searchLower = lastSearchQuery.toLowerCase();
+      final textLower = text.toLowerCase();
+      
+      if (!textLower.contains(searchLower)) {
+        return Text(text, style: style);
+      }
+      
+      final startIndex = textLower.indexOf(searchLower);
+      final endIndex = startIndex + searchLower.length;
+      
+      return RichText(
+        text: TextSpan(
+          style: style ?? const TextStyle(color: Colors.black),
+          children: [
+            TextSpan(text: text.substring(0, startIndex)),
+            TextSpan(
+              text: text.substring(startIndex, endIndex),
+              style: TextStyle(
+                backgroundColor: Colors.yellow.withOpacity(0.3),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextSpan(text: text.substring(endIndex)),
+          ],
+        ),
+      );
+    }
+    
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
       child: InkWell(
         onTap: () {
-          // Navigate to detail screen instead of directly adding
+          // Navigate to detail screen
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -370,20 +486,18 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Item name
-                    Text(
+                    _highlightText(
                       item.name,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     
-                    // Category (shown in search results)
-                    if (showSearch) ...[
+                    // Category (always shown in search results)
+                    if (showSearch || highlightSearch) ...[
                       const SizedBox(height: 2),
-                      Text(
+                      _highlightText(
                         item.category,
                         style: TextStyle(
                           fontSize: 12,
@@ -396,14 +510,12 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     // Description if available
                     if (item.description != null) ...[
                       const SizedBox(height: 4),
-                      Text(
+                      _highlightText(
                         item.description!,
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                     
