@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/order_provider.dart';
+import '../services/sales_provider.dart';
 import '../model/order_model.dart';
 import '../services/printer_service.dart';
 
@@ -334,14 +335,18 @@ class OrderSummaryScreen extends StatelessWidget {
     try {
       await PrinterService.printOrder(order);
       
+      // Record the sale after successful print
+      final salesProvider = Provider.of<SalesProvider>(context, listen: false);
+      await salesProvider.addSale(order);
+      
       // Show success message and navigate back to home
       if (context.mounted) {
         showDialog(
           context: context,
           builder: (BuildContext dialogContext) {
             return AlertDialog(
-              title: const Text('Order Printed Successfully'),
-              content: const Text('The order has been sent to the printer.'),
+              title: const Text('Order Completed Successfully'),
+              content: const Text('The order has been printed and recorded in sales.'),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -372,9 +377,45 @@ class OrderSummaryScreen extends StatelessWidget {
                   },
                   child: const Text('OK'),
                 ),
+                TextButton(
+                  onPressed: () {
+                    // Allow manual sale recording even if print failed
+                    Navigator.of(dialogContext).pop();
+                    _recordSaleManually(context, order);
+                  },
+                  child: const Text('Record Sale Anyway'),
+                ),
               ],
             );
           },
+        );
+      }
+    }
+  }
+
+  void _recordSaleManually(BuildContext context, Order order) async {
+    try {
+      final salesProvider = Provider.of<SalesProvider>(context, listen: false);
+      await salesProvider.addSale(order);
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sale recorded successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        Provider.of<OrderProvider>(context, listen: false).clearOrder();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to record sale: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }

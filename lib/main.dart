@@ -1,21 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/order_provider.dart';
+import 'services/sales_provider.dart';
 
 // Import screens
 import 'screens/home_screen.dart';
 
-void main() {
-  runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize sales provider
+  final salesProvider = SalesProvider();
+  await salesProvider.initialize();
+  
+  runApp(MyApp(salesProvider: salesProvider));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  final SalesProvider salesProvider;
+  
+  const MyApp({Key? key, required this.salesProvider}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => OrderProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => OrderProvider()),
+        ChangeNotifierProvider.value(value: salesProvider),
+      ],
       child: MaterialApp(
         title: 'Curry King Order Pad',
         theme: ThemeData(

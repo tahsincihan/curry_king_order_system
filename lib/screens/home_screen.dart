@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'takeaway_order_screen.dart';
 import 'dine_in_screen.dart';
 import 'printer_settings_screen.dart';
+import 'sales_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -15,6 +16,18 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: Colors.orange[600],
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.analytics),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SalesScreen(),
+                ),
+              );
+            },
+            tooltip: 'Sales Dashboard',
+          ),
           IconButton(
             icon: const Icon(Icons.print),
             onPressed: () {
@@ -149,6 +162,45 @@ class HomeScreen extends StatelessWidget {
                       'DINE IN',
                       style: TextStyle(
                         fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            // Sales Dashboard Button
+            Container(
+              width: 250,
+              height: 60,
+              child: OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SalesScreen(),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.orange[600],
+                  side: BorderSide(color: Colors.orange[600]!, width: 2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.analytics, size: 24),
+                    SizedBox(width: 10),
+                    Text(
+                      'SALES DASHBOARD',
+                      style: TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

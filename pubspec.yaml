@@ -39,6 +39,8 @@ dependencies:
   path: ^1.9.1
   provider: ^6.1.5
   bluetooth_print: ^4.3.0
+  hive_flutter: ^1.1.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
