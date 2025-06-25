@@ -62,6 +62,8 @@ class Order {
   DateTime orderTime;
   String? tableNumber; // for dine-in orders
   double deliveryCharge;
+  double orderDiscount; // Order-level discount (percentage if ≤100, fixed amount if >100)
+  String discountReason; // Reason for discount
 
   Order({
     required this.items,
@@ -71,17 +73,51 @@ class Order {
     required this.orderTime,
     this.tableNumber,
     this.deliveryCharge = 0.0,
+    this.orderDiscount = 0.0,
+    this.discountReason = '',
   });
 
   double get subtotal {
     return items.fold(0.0, (sum, item) => sum + item.totalPrice);
   }
 
+  double get discountAmount {
+    if (orderDiscount <= 0) return 0.0;
+    
+    if (orderDiscount <= 100) {
+      // Percentage discount (e.g., 10 = 10%)
+      return subtotal * (orderDiscount / 100);
+    } else {
+      // Fixed amount discount (e.g., 105 = £105 off)
+      return orderDiscount > subtotal ? subtotal : orderDiscount;
+    }
+  }
+
+  double get subtotalAfterDiscount {
+    return subtotal - discountAmount;
+  }
+
   double get total {
-    return subtotal + deliveryCharge;
+    return subtotalAfterDiscount + deliveryCharge;
   }
 
   int get totalItems {
     return items.fold(0, (sum, item) => sum + item.quantity);
+  }
+
+  // Helper method to check if order has discount
+  bool get hasDiscount {
+    return orderDiscount > 0;
+  }
+
+  // Helper method to get discount type description
+  String get discountTypeDescription {
+    if (orderDiscount <= 0) return '';
+    
+    if (orderDiscount <= 100) {
+      return '${orderDiscount.toStringAsFixed(0)}%';
+    } else {
+      return '£${orderDiscount.toStringAsFixed(2)}';
+    }
   }
 }
