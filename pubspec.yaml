@@ -66,24 +66,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # App assets
-  assets:
-    - assets/icons/
-    - assets/images/
-    - assets/sounds/
-
-  # Touch-friendly fonts (optional)
-  fonts:
-    - family: Inter
-      fonts:
-        - asset: fonts/Inter-Regular.ttf
-        - asset: fonts/Inter-Medium.ttf
-          weight: 500
-        - asset: fonts/Inter-SemiBold.ttf
-          weight: 600
-        - asset: fonts/Inter-Bold.ttf
-          weight: 700
-
 # Windows MSIX packaging configuration
 msix_config:
   # App identity
