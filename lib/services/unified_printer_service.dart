@@ -153,7 +153,7 @@ class UnifiedPrinterService {
     );
   }
 
-  // **UPDATED: Print via Bluetooth with new layout**
+  // Print via Bluetooth with new layout
   static Future<void> _printViaBluetooth(Order order) async {
     bool isConnected = await bluetoothPrint.isConnected ?? false;
     if (!isConnected) {
@@ -161,12 +161,11 @@ class UnifiedPrinterService {
     }
 
     Map<String, dynamic> config = {};
-    // Use the new method to generate a text-based receipt
     List<LineText> receiptLines = _generateBluetoothReceipt(order);
     await bluetoothPrint.printReceipt(config, receiptLines);
   }
 
-  // Generate PDF for network printing
+  // **UPDATED PDF GENERATION LOGIC**
   static Future<Uint8List> _generateReceiptPDF(Order order) async {
     final pdf = pw.Document();
 
@@ -189,10 +188,7 @@ class UnifiedPrinterService {
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    pw.Text(
-                      'INDIAN CUISINE',
-                      style: const pw.TextStyle(fontSize: 16),
-                    ),
+                    // "INDIAN CUISINE" REMOVED
                     pw.SizedBox(height: 8),
                     pw.Divider(),
                   ],
@@ -337,15 +333,17 @@ class UnifiedPrinterService {
                 children: [
                   pw.Text(
                     'TOTAL:',
+                    // FONT SIZE REDUCED
                     style: pw.TextStyle(
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
                   pw.Text(
                     '£${order.total.toStringAsFixed(2)}',
+                    // FONT SIZE REDUCED
                     style: pw.TextStyle(
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
@@ -372,7 +370,7 @@ class UnifiedPrinterService {
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
                     pw.SizedBox(height: 4),
-                    pw.Text('CURRY KING - INDIAN CUISINE'),
+                    // "CURRY KING - INDIAN CUISINE" REMOVED FROM FOOTER
                   ],
                 ),
               ),
@@ -394,12 +392,6 @@ class UnifiedPrinterService {
         type: LineText.TYPE_TEXT,
         content: 'CURRY KING',
         weight: 2,
-        align: LineText.ALIGN_CENTER,
-        linefeed: 1));
-    lines.add(LineText(
-        type: LineText.TYPE_TEXT,
-        content: 'INDIAN CUISINE',
-        weight: 1,
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
     lines.add(LineText(
@@ -546,10 +538,11 @@ class UnifiedPrinterService {
         content: '--------------------------------',
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
+    // WEIGHT OF TOTAL REDUCED
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
         content: 'TOTAL: £${order.total.toStringAsFixed(2)}',
-        weight: 2,
+        weight: 1,
         align: LineText.ALIGN_RIGHT,
         linefeed: 1));
 
@@ -567,10 +560,8 @@ class UnifiedPrinterService {
         weight: 1,
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
-    lines.add(LineText(
-        type: LineText.TYPE_TEXT,
-        content: '',
-        linefeed: 3)); // Add space for cutting
+    // EXTRA LINEFEEDS REMOVED
+    lines.add(LineText(type: LineText.TYPE_TEXT, content: '', linefeed: 1));
 
     return lines;
   }
