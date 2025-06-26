@@ -15,9 +15,10 @@ class MenuItem {
 
   // Method to get the appropriate price based on order type
   double getTakeawayPrice() {
-    return takeawayPrice ?? price; // Use takeaway price if available, otherwise use dine-in price
+    return takeawayPrice ??
+        price; // Use takeaway price if available, otherwise use dine-in price
   }
-  
+
   // Method to get dine-in price (just returns the main price)
   double getDineInPrice() {
     return price;
@@ -55,6 +56,8 @@ class CustomerInfo {
 }
 
 class Order {
+  // NEW: Added a unique ID for each order
+  final String id;
   List<OrderItem> items;
   CustomerInfo customerInfo;
   String orderType; // 'takeaway' or 'dine-in'
@@ -62,10 +65,13 @@ class Order {
   DateTime orderTime;
   String? tableNumber; // for dine-in orders
   double deliveryCharge;
-  double orderDiscount; // Order-level discount (percentage if ≤100, fixed amount if >100)
+  double
+      orderDiscount; // Order-level discount (percentage if ≤100, fixed amount if >100)
   String discountReason; // Reason for discount
 
   Order({
+    // NEW: ID is now required
+    required this.id,
     required this.items,
     required this.customerInfo,
     required this.orderType,
@@ -83,7 +89,7 @@ class Order {
 
   double get discountAmount {
     if (orderDiscount <= 0) return 0.0;
-    
+
     if (orderDiscount <= 100) {
       // Percentage discount (e.g., 10 = 10%)
       return subtotal * (orderDiscount / 100);
@@ -113,7 +119,7 @@ class Order {
   // Helper method to get discount type description
   String get discountTypeDescription {
     if (orderDiscount <= 0) return '';
-    
+
     if (orderDiscount <= 100) {
       return '${orderDiscount.toStringAsFixed(0)}%';
     } else {

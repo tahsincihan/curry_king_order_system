@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../model/order_model.dart';
 
 class OrderProvider extends ChangeNotifier {
+  // State for the order being currently built
   List<OrderItem> _orderItems = [];
   CustomerInfo _customerInfo = CustomerInfo();
   String _orderType = 'takeaway';
@@ -9,6 +10,10 @@ class OrderProvider extends ChangeNotifier {
   String? _tableNumber;
   double _deliveryCharge = 0.0;
 
+  // NEW: State for managing live, active orders
+  List<Order> _liveOrders = [];
+
+  // Getters for the current order
   List<OrderItem> get orderItems => _orderItems;
   CustomerInfo get customerInfo => _customerInfo;
   String get orderType => _orderType;
@@ -16,17 +21,13 @@ class OrderProvider extends ChangeNotifier {
   String? get tableNumber => _tableNumber;
   double get deliveryCharge => _deliveryCharge;
 
-  double get subtotal {
-    return _orderItems.fold(0.0, (sum, item) => sum + item.totalPrice);
-  }
+  // NEW: Getter for live orders
+  List<Order> get liveOrders => _liveOrders;
 
-  double get total {
-    return subtotal + _deliveryCharge;
-  }
-
-  int get totalItems {
-    return _orderItems.fold(0, (sum, item) => sum + item.quantity);
-  }
+  double get subtotal =>
+      _orderItems.fold(0.0, (sum, item) => sum + item.totalPrice);
+  double get total => subtotal + _deliveryCharge;
+  int get totalItems => _orderItems.fold(0, (sum, item) => sum + item.quantity);
 
   void setOrderType(String type) {
     _orderType = type;
@@ -64,12 +65,11 @@ class OrderProvider extends ChangeNotifier {
   }
 
   void addItem(MenuItem menuItem, {String? specialInstructions}) {
-    // Check if item already exists
     int existingIndex = _orderItems.indexWhere(
-      (item) => item.menuItem.name == menuItem.name && 
-                item.specialInstructions == specialInstructions,
+      (item) =>
+          item.menuItem.name == menuItem.name &&
+          item.specialInstructions == specialInstructions,
     );
-
     if (existingIndex != -1) {
       _orderItems[existingIndex].quantity++;
     } else {
@@ -77,6 +77,20 @@ class OrderProvider extends ChangeNotifier {
         menuItem: menuItem,
         specialInstructions: specialInstructions,
       ));
+    }
+    notifyListeners();
+  }
+
+  void addCompleteOrderItem(OrderItem newItem) {
+    int existingIndex = _orderItems.indexWhere(
+      (item) =>
+          item.menuItem.name == newItem.menuItem.name &&
+          item.specialInstructions == newItem.specialInstructions,
+    );
+    if (existingIndex != -1) {
+      _orderItems[existingIndex].quantity += newItem.quantity;
+    } else {
+      _orderItems.add(newItem);
     }
     notifyListeners();
   }
@@ -106,25 +120,11 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  void addCompleteOrderItem(OrderItem newItem) {
-    // Check if a similar item already exists
-    int existingIndex = _orderItems.indexWhere(
-      (item) => item.menuItem.name == newItem.menuItem.name && 
-                item.specialInstructions == newItem.specialInstructions,
-    );
-
-    if (existingIndex != -1) {
-      // If exists, update quantity
-      _orderItems[existingIndex].quantity += newItem.quantity;
-    } else {
-      // Otherwise add new item
-      _orderItems.add(newItem);
-    }
-    notifyListeners();
-  }
-
-  Order createOrder() {
+  // UPDATED: Renamed from createOrder to buildCurrentOrder
+  Order buildCurrentOrder() {
     return Order(
+      // Temporarily use timestamp for ID, will be replaced when placed
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
       items: List.from(_orderItems),
       customerInfo: CustomerInfo(
         name: _customerInfo.name,
@@ -141,6 +141,36 @@ class OrderProvider extends ChangeNotifier {
     );
   }
 
+  // NEW: Method to place the current order into the live orders list
+  void placeOrder() {
+    if (_orderItems.isEmpty) return;
+
+    final newOrder = buildCurrentOrder();
+    _liveOrders.add(newOrder);
+    clearOrder(); // Clears the order builder for the next order
+    notifyListeners();
+  }
+
+  // NEW: Method to update payment for a live collection order
+  void updateLiveOrderPayment(String orderId, String paymentMethod) {
+    int orderIndex = _liveOrders.indexWhere((order) => order.id == orderId);
+    if (orderIndex != -1) {
+      _liveOrders[orderIndex].paymentMethod = paymentMethod;
+      notifyListeners();
+    }
+  }
+
+  // NEW: Method to remove an order from the live list once completed
+  Order? completeOrder(String orderId) {
+    int orderIndex = _liveOrders.indexWhere((order) => order.id == orderId);
+    if (orderIndex != -1) {
+      final completedOrder = _liveOrders.removeAt(orderIndex);
+      notifyListeners();
+      return completedOrder;
+    }
+    return null;
+  }
+
   void clearOrder() {
     _orderItems.clear();
     _customerInfo = CustomerInfo();
@@ -148,6 +178,6 @@ class OrderProvider extends ChangeNotifier {
     _paymentMethod = 'cash';
     _tableNumber = null;
     _deliveryCharge = 0.0;
-    notifyListeners();
+    // We don't notify listeners here because it's usually part of another action
   }
 }

@@ -1,527 +1,335 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../model/order_model.dart';
+import '../services/order_provider.dart';
 import '../services/sales_provider.dart';
+import '../services/unified_printer_service.dart';
 import 'takeaway_order_screen.dart';
 import 'dine_in_screen.dart';
 import 'printer_settings_screen.dart';
 import 'sales_screen.dart';
+import 'order_summary.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final isLargeScreen = screenSize.width > 1000;
-    
     return Scaffold(
       backgroundColor: Colors.orange[50],
       appBar: AppBar(
-        title: Row(
-          children: [
-            Icon(Icons.restaurant, size: 32, color: Colors.white),
-            const SizedBox(width: 12),
-            const Text('Curry King POS System'),
-          ],
-        ),
+        title: const Text('Curry King POS'),
         backgroundColor: Colors.orange[600],
         foregroundColor: Colors.white,
         toolbarHeight: 80,
         actions: [
-          // Sales Summary in App Bar
-          Consumer<SalesProvider>(
-            builder: (context, salesProvider, child) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      "Today's Sales",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                    Text(
-                      '£${salesProvider.todayTotal.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
+          IconButton(
+            icon: const Icon(Icons.analytics),
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const SalesScreen())),
+            tooltip: 'Sales Dashboard',
           ),
-          const SizedBox(width: 16),
-          
-          // Quick Action Buttons
-          _buildAppBarButton(
-            icon: Icons.analytics,
-            label: 'Sales',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SalesScreen()),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-          _buildAppBarButton(
-            icon: Icons.print,
-            label: 'Printer',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => PrinterSettingsScreen()),
-              );
-            },
+          IconButton(
+            icon: const Icon(Icons.print),
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => PrinterSettingsScreen())),
+            tooltip: 'Printer Settings',
           ),
           const SizedBox(width: 16),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth > 1200) {
-            // Wide screen layout (desktop POS)
-            return _buildWideLayout(context);
-          } else {
-            // Standard layout (tablet POS)
-            return _buildStandardLayout(context);
-          }
-        },
+      // **UPDATED: Flex values adjusted for a 60/40 layout split**
+      body: Row(
+        children: [
+          // Left side - Main actions panel
+          Expanded(
+            // Takes up 3 parts (60%) of the available space
+            flex: 3,
+            child: _buildActionPanel(context),
+          ),
+
+          // Right side - Live Order Dashboard
+          Expanded(
+            // Takes up 2 parts (40%) of the available space
+            flex: 2,
+            child: _buildLiveOrdersPanel(context),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildAppBarButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: Icon(icon, size: 28),
-          onPressed: onPressed,
-          tooltip: label,
-          padding: const EdgeInsets.all(8),
-        ),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 10, color: Colors.white),
-        ),
-      ],
+  Widget _buildActionPanel(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.restaurant,
+            size: 60,
+            color: Colors.orange[800],
+          ),
+          const SizedBox(height: 16),
+          const Text('New Order',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 32),
+          _buildOrderButton(
+            context: context,
+            title: 'TAKEAWAY',
+            subtitle: 'Collection & Delivery',
+            icon: Icons.takeout_dining,
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const TakeawayOrderScreen())),
+          ),
+          const SizedBox(height: 24),
+          _buildOrderButton(
+            context: context,
+            title: 'DINE IN',
+            subtitle: 'Table Orders',
+            icon: Icons.restaurant_menu,
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const DineInOrderScreen())),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildWideLayout(BuildContext context) {
-    return Row(
-      children: [
-        // Left side - Main actions
-        Expanded(
-          flex: 2,
-          child: _buildMainContent(context, isWide: true),
+  Widget _buildOrderButton(
+      {required BuildContext context,
+      required String title,
+      required String subtitle,
+      required IconData icon,
+      required VoidCallback onPressed}) {
+    return SizedBox(
+      width: double.infinity,
+      height: 120,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange[600],
+          foregroundColor: Colors.white,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          padding: const EdgeInsets.symmetric(vertical: 8),
         ),
-        
-        // Right side - Quick info panel
-        Container(
-          width: 400,
-          color: Colors.white,
-          child: _buildInfoPanel(context),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStandardLayout(BuildContext context) {
-    return _buildMainContent(context, isWide: false);
-  }
-
-  Widget _buildMainContent(BuildContext context, {required bool isWide}) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo/Header
-            Container(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.orange[100],
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.restaurant,
-                      size: isWide ? 120 : 80,
-                      color: Colors.orange[700],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'CURRY KING',
-                    style: TextStyle(
-                      fontSize: isWide ? 48 : 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange[800],
-                      letterSpacing: 3,
-                    ),
-                  ),
-                  Text(
-                    'POINT OF SALE SYSTEM',
-                    style: TextStyle(
-                      fontSize: isWide ? 20 : 16,
-                      color: Colors.orange[600],
-                      letterSpacing: 2,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // Order Type Selection
-            Text(
-              'Select Order Type',
-              style: TextStyle(
-                fontSize: isWide ? 32 : 24,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // Order Buttons
-            if (isWide) ...[
-              // Wide layout - buttons side by side
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildOrderButton(
-                    context: context,
-                    title: 'TAKEAWAY',
-                    subtitle: 'Collection & Delivery Orders',
-                    icon: Icons.takeout_dining,
-                    color: Colors.orange[600]!,
-                    onPressed: () => _navigateToTakeaway(context),
-                    width: 280,
-                    height: 160,
-                  ),
-                  const SizedBox(width: 32),
-                  _buildOrderButton(
-                    context: context,
-                    title: 'DINE IN',
-                    subtitle: 'Restaurant Table Orders',
-                    icon: Icons.restaurant_menu,
-                    color: Colors.orange[700]!,
-                    onPressed: () => _navigateToDineIn(context),
-                    width: 280,
-                    height: 160,
-                  ),
-                ],
-              ),
-            ] else ...[
-              // Standard layout - buttons stacked
-              _buildOrderButton(
-                context: context,
-                title: 'TAKEAWAY',
-                subtitle: 'Collection & Delivery Orders',
-                icon: Icons.takeout_dining,
-                color: Colors.orange[600]!,
-                onPressed: () => _navigateToTakeaway(context),
-                width: 320,
-                height: 120,
-              ),
-              const SizedBox(height: 20),
-              _buildOrderButton(
-                context: context,
-                title: 'DINE IN',
-                subtitle: 'Restaurant Table Orders',
-                icon: Icons.restaurant_menu,
-                color: Colors.orange[700]!,
-                onPressed: () => _navigateToDineIn(context),
-                width: 320,
-                height: 120,
-              ),
-            ],
-
-            const SizedBox(height: 40),
-
-            // Quick Actions Row
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                _buildQuickActionButton(
-                  context: context,
-                  title: 'Sales Dashboard',
-                  icon: Icons.analytics,
-                  color: Colors.blue[600]!,
-                  onPressed: () => _navigateToSales(context),
-                ),
-                _buildQuickActionButton(
-                  context: context,
-                  title: 'Printer Setup',
-                  icon: Icons.print,
-                  color: Colors.green[600]!,
-                  onPressed: () => _navigateToPrinter(context),
-                ),
-              ],
-            ),
+            Icon(icon, size: 36),
+            const SizedBox(height: 8),
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(subtitle,
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.9), fontSize: 12)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoPanel(BuildContext context) {
-    return Consumer<SalesProvider>(
-      builder: (context, salesProvider, child) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Today\'s Overview',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              _buildInfoCard(
-                title: 'Total Sales',
-                value: '£${salesProvider.todayTotal.toStringAsFixed(2)}',
-                icon: Icons.monetization_on,
-                color: Colors.green,
-              ),
-              
-              _buildInfoCard(
-                title: 'Orders Today',
-                value: '${salesProvider.todayOrders}',
-                icon: Icons.receipt,
-                color: Colors.blue,
-              ),
-              
-              _buildInfoCard(
-                title: 'Cash Sales',
-                value: '£${salesProvider.todayCash.toStringAsFixed(2)}',
-                icon: Icons.money,
-                color: Colors.orange,
-              ),
-              
-              _buildInfoCard(
-                title: 'Card Sales',
-                value: '£${salesProvider.todayCard.toStringAsFixed(2)}',
-                icon: Icons.credit_card,
-                color: Colors.purple,
-              ),
-              
-              const SizedBox(height: 24),
-              
-              SizedBox(
-                width: double.infinity,
-                height: 60,
-                child: ElevatedButton.icon(
-                  onPressed: () => _navigateToSales(context),
-                  icon: const Icon(Icons.analytics),
-                  label: const Text('View Detailed Sales'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[600],
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
+  // Live Orders Panel
+  Widget _buildLiveOrdersPanel(BuildContext context) {
+    return Consumer<OrderProvider>(
+      builder: (context, orderProvider, child) {
+        final liveOrders = orderProvider.liveOrders;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text('Live Orders (${liveOrders.length})',
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold)),
+            ),
+            Expanded(
+              child: liveOrders.isEmpty
+                  ? const Center(
+                      child: Text('No active orders',
+                          style: TextStyle(fontSize: 18, color: Colors.grey)))
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      itemCount: liveOrders.length,
+                      itemBuilder: (context, index) {
+                        // Display newest orders first
+                        return _LiveOrderCard(
+                            order: liveOrders[liveOrders.length - 1 - index]);
+                      },
+                    ),
+            ),
+          ],
         );
       },
     );
   }
+}
 
-  Widget _buildInfoCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
+// Live Order Card Widget
+class _LiveOrderCard extends StatelessWidget {
+  final Order order;
+  const _LiveOrderCard({Key? key, required this.order}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    final salesProvider = Provider.of<SalesProvider>(context, listen: false);
+
+    IconData icon;
+    String title;
+    String subtitle;
+    Color cardColor = Colors.white;
+
+    if (order.orderType == 'dine-in') {
+      icon = Icons.restaurant_menu;
+      title = 'Table ${order.tableNumber ?? 'N/A'}';
+      subtitle = 'Dine-In Order';
+      cardColor = Colors.blue[50]!;
+    } else {
+      if (order.customerInfo.isDelivery) {
+        icon = Icons.delivery_dining;
+        title = order.customerInfo.name ?? 'Delivery';
+        subtitle = 'Delivery to ${order.customerInfo.address ?? 'N/A'}';
+        cardColor = Colors.green[50]!;
+      } else {
+        icon = Icons.takeout_dining;
+        title = order.customerInfo.name ?? 'Collection';
+        subtitle = 'Collection Order';
+        cardColor = Colors.orange[50]!;
+      }
+    }
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOrderButton({
-    required BuildContext context,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onPressed,
-    required double width,
-    required double height,
-  }) {
-    return Container(
-      width: width,
-      height: height,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      elevation: 3,
+      color: cardColor,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: Colors.grey[300]!, width: 1)),
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(icon, color: Colors.black54),
+            title: Text(title,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(
+                '${order.totalItems} items • ${DateFormat('HH:mm').format(order.orderTime)}'),
+            trailing: Text('£${order.total.toStringAsFixed(2)}',
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
+            onTap: () {
+              // TODO: This should show a read-only view of the order
+            },
           ),
-          elevation: 8,
-          shadowColor: color.withOpacity(0.5),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: height * 0.3),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: height * 0.15,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: height * 0.08,
-                color: Colors.white.withOpacity(0.9),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: _buildCardActions(context, orderProvider, salesProvider),
+          )
+        ],
       ),
     );
   }
 
-  Widget _buildQuickActionButton({
-    required BuildContext context,
-    required String title,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      width: 180,
-      height: 80,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: color,
-          side: BorderSide(color: color, width: 2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+  Widget _buildCardActions(BuildContext context, OrderProvider orderProvider,
+      SalesProvider salesProvider) {
+    bool isCollection =
+        order.orderType == 'takeaway' && !order.customerInfo.isDelivery;
+
+    // For collection orders, a payment method must be explicitly chosen.
+    // For Dine-in or Delivery, we can assume a default or that it's handled differently.
+    bool canComplete = !isCollection ||
+        (order.paymentMethod == 'cash' || order.paymentMethod == 'card');
+
+    return Row(
+      children: [
+        if (isCollection)
+          Row(
+            children: [
+              const Text('Pay with:'),
+              const SizedBox(width: 8),
+              FilterChip(
+                label: const Text('Cash'),
+                selected: order.paymentMethod == 'cash',
+                onSelected: (selected) {
+                  if (selected)
+                    orderProvider.updateLiveOrderPayment(order.id, 'cash');
+                },
+                backgroundColor: Colors.grey[200],
+                selectedColor: Colors.green[200],
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                label: const Text('Card'),
+                selected: order.paymentMethod == 'card',
+                onSelected: (selected) {
+                  if (selected)
+                    orderProvider.updateLiveOrderPayment(order.id, 'card');
+                },
+                backgroundColor: Colors.grey[200],
+                selectedColor: Colors.blue[200],
+              ),
+            ],
+          ),
+        const Spacer(),
+        ElevatedButton.icon(
+          onPressed: canComplete
+              ? () async {
+                  final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                                title: const Text('Complete Order?'),
+                                content: Text(
+                                    'This will finalize the sale for ${order.paymentMethod.toUpperCase()} and print the receipt. This cannot be undone.'),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child: const Text('Cancel')),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(true),
+                                    child: const Text('Complete',
+                                        style: TextStyle(color: Colors.white)),
+                                    style: TextButton.styleFrom(
+                                        backgroundColor: Colors.green),
+                                  ),
+                                ],
+                              )) ??
+                      false;
+
+                  if (confirm) {
+                    final completedOrder =
+                        orderProvider.completeOrder(order.id);
+                    if (completedOrder != null) {
+                      await salesProvider.addSale(completedOrder);
+                      await UnifiedPrinterService.printOrder(completedOrder);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content:
+                                  Text('Order completed and sale recorded.'),
+                              backgroundColor: Colors.green),
+                        );
+                      }
+                    }
+                  }
+                }
+              : null, // Button is disabled if conditions aren't met
+          icon: const Icon(Icons.check_circle_outline),
+          label: const Text('Mark as Done'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: canComplete ? Colors.green : Colors.grey,
+            foregroundColor: Colors.white,
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _navigateToTakeaway(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => TakeawayOrderScreen()),
-    );
-  }
-
-  void _navigateToDineIn(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => DineInOrderScreen()),
-    );
-  }
-
-  void _navigateToSales(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SalesScreen()),
-    );
-  }
-
-  void _navigateToPrinter(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => PrinterSettingsScreen()),
+      ],
     );
   }
 }
