@@ -153,7 +153,7 @@ class UnifiedPrinterService {
     );
   }
 
-  // Print via Bluetooth (existing implementation)
+  // **UPDATED: Print via Bluetooth with new layout**
   static Future<void> _printViaBluetooth(Order order) async {
     bool isConnected = await bluetoothPrint.isConnected ?? false;
     if (!isConnected) {
@@ -161,11 +161,12 @@ class UnifiedPrinterService {
     }
 
     Map<String, dynamic> config = {};
+    // Use the new method to generate a text-based receipt
     List<LineText> receiptLines = _generateBluetoothReceipt(order);
     await bluetoothPrint.printReceipt(config, receiptLines);
   }
 
-  // **UPDATED PDF GENERATION LOGIC**
+  // Generate PDF for network printing
   static Future<Uint8List> _generateReceiptPDF(Order order) async {
     final pdf = pw.Document();
 
@@ -234,7 +235,7 @@ class UnifiedPrinterService {
 
               pw.Divider(),
 
-              // **UPDATED ORDER ITEMS SECTION**
+              // Order Items
               pw.Text(
                 'ORDER ITEMS',
                 style: pw.TextStyle(
@@ -384,13 +385,193 @@ class UnifiedPrinterService {
     return pdf.save();
   }
 
-  // Generate Bluetooth receipt (existing implementation)
+  // **UPDATED: Generate thermal printer friendly text receipt**
   static List<LineText> _generateBluetoothReceipt(Order order) {
-    // This part is for bluetooth text printers and won't reflect the new PDF layout.
-    // For a fully consistent look, you would need to convert the PDF to an image
-    // and print the image, which is more complex.
     List<LineText> lines = [];
-    // ... (copy from your existing printer_service.dart)
+
+    // Header
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: 'CURRY KING',
+        weight: 2,
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: 'INDIAN CUISINE',
+        weight: 1,
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: '================================',
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+
+    // Order Info
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: order.orderType.toUpperCase(),
+        weight: 1,
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: 'Date: ${_formatDateTime(order.orderTime)}',
+        align: LineText.ALIGN_LEFT,
+        linefeed: 1));
+
+    // Customer Info
+    if (order.orderType == 'takeaway') {
+      lines.add(LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'CUSTOMER: ${order.customerInfo.name ?? 'N/A'}',
+          align: LineText.ALIGN_LEFT,
+          linefeed: 1));
+      lines.add(LineText(
+          type: LineText.TYPE_TEXT,
+          content:
+              'TYPE: ${order.customerInfo.isDelivery ? 'DELIVERY' : 'COLLECTION'}',
+          align: LineText.ALIGN_LEFT,
+          linefeed: 1));
+      if (order.customerInfo.isDelivery) {
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: 'ADDRESS: ${order.customerInfo.address ?? 'N/A'}',
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: 'POSTCODE: ${order.customerInfo.postcode ?? 'N/A'}',
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+      }
+      lines.add(LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'PHONE: ${order.customerInfo.phoneNumber ?? 'N/A'}',
+          align: LineText.ALIGN_LEFT,
+          linefeed: 1));
+    } else {
+      lines.add(LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'TABLE: ${order.tableNumber ?? 'N/A'}',
+          weight: 1,
+          align: LineText.ALIGN_LEFT,
+          linefeed: 1));
+    }
+
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: '--------------------------------',
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+
+    // Order Items
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: 'ORDER ITEMS',
+        weight: 1,
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+    for (var item in order.items) {
+      String mainItemName = item.menuItem.name;
+      String? riceModifier;
+
+      if (mainItemName.contains(' with ')) {
+        var parts = mainItemName.split(' with ');
+        mainItemName = parts[0];
+        riceModifier = parts.length > 1 ? parts[1] : null;
+      }
+
+      lines.add(LineText(
+          type: LineText.TYPE_TEXT,
+          content: '${item.quantity}x $mainItemName',
+          weight: 1,
+          align: LineText.ALIGN_LEFT));
+      lines.add(LineText(
+          type: LineText.TYPE_TEXT,
+          content: '£${item.totalPrice.toStringAsFixed(2)}',
+          align: LineText.ALIGN_RIGHT,
+          linefeed: 1));
+
+      if (riceModifier != null) {
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: '  + $riceModifier',
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+      }
+
+      if (item.specialInstructions?.isNotEmpty == true) {
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: '********************************',
+            align: LineText.ALIGN_CENTER,
+            linefeed: 1));
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: 'NOTE: ${item.specialInstructions}',
+            weight: 1,
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: '********************************',
+            align: LineText.ALIGN_CENTER,
+            linefeed: 1));
+      }
+    }
+
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: '--------------------------------',
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+
+    // Totals
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: 'Subtotal: £${order.subtotal.toStringAsFixed(2)}',
+        align: LineText.ALIGN_RIGHT,
+        linefeed: 1));
+    if (order.deliveryCharge > 0) {
+      lines.add(LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'Delivery: £${order.deliveryCharge.toStringAsFixed(2)}',
+          align: LineText.ALIGN_RIGHT,
+          linefeed: 1));
+    }
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: '--------------------------------',
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: 'TOTAL: £${order.total.toStringAsFixed(2)}',
+        weight: 2,
+        align: LineText.ALIGN_RIGHT,
+        linefeed: 1));
+
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: 'Payment: ${order.paymentMethod.toUpperCase()}',
+        weight: 1,
+        align: LineText.ALIGN_CENTER,
+        linefeed: 2));
+
+    // Footer
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: 'Thank you for your order!',
+        weight: 1,
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: '',
+        linefeed: 3)); // Add space for cutting
+
     return lines;
   }
 
