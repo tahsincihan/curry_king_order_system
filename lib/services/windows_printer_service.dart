@@ -36,7 +36,7 @@ class WindowsPrinterService {
     try {
       // Generate PDF for the receipt
       final pdf = await _generateReceiptPDF(order);
-      
+
       // Print using system printer
       if (_selectedPrinter != null) {
         await Printing.directPrintPdf(
@@ -59,10 +59,10 @@ class WindowsPrinterService {
     }
   }
 
-  // Generate PDF receipt
+  // **UPDATED PDF GENERATION LOGIC**
   static Future<Uint8List> _generateReceiptPDF(Order order) async {
     final pdf = pw.Document();
-    
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.roll80,
@@ -99,7 +99,9 @@ class WindowsPrinterService {
 
               // Order Info
               pw.Text(
-                order.orderType == 'takeaway' ? 'TAKEAWAY ORDER' : 'DINE IN ORDER',
+                order.orderType == 'takeaway'
+                    ? 'TAKEAWAY ORDER'
+                    : 'DINE IN ORDER',
                 style: pw.TextStyle(
                   fontSize: 16,
                   fontWeight: pw.FontWeight.bold,
@@ -130,10 +132,11 @@ class WindowsPrinterService {
               ],
 
               pw.SizedBox(height: 8),
-              pw.Container(width: double.infinity, height: 1, color: PdfColors.black),
+              pw.Container(
+                  width: double.infinity, height: 1, color: PdfColors.black),
               pw.SizedBox(height: 8),
 
-              // Order Items
+              // **UPDATED ORDER ITEMS SECTION**
               pw.Text(
                 'ORDER ITEMS',
                 style: pw.TextStyle(
@@ -143,32 +146,79 @@ class WindowsPrinterService {
               ),
               pw.SizedBox(height: 4),
 
-              ...order.items.map((item) => pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Expanded(
-                        child: pw.Text('${item.quantity}x ${item.menuItem.name}'),
-                      ),
-                      pw.Text('£${item.totalPrice.toStringAsFixed(2)}'),
-                    ],
-                  ),
-                  if (item.specialInstructions?.isNotEmpty == true)
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.only(left: 16),
-                      child: pw.Text(
-                        'Note: ${item.specialInstructions}',
-                        style: pw.TextStyle(fontSize: 10),
-                      ),
+              ...order.items.map((item) {
+                String mainItemName = item.menuItem.name;
+                String? riceModifier;
+
+                if (mainItemName.contains(' with ')) {
+                  var parts = mainItemName.split(' with ');
+                  mainItemName = parts[0];
+                  riceModifier = parts.length > 1 ? parts[1] : null;
+                }
+
+                return pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment:
+                          pw.CrossAxisAlignment.start, // Align to top
+                      children: [
+                        pw.Expanded(
+                          child: pw.Text(
+                            '${item.quantity}x $mainItemName',
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                        ),
+                        pw.Text(
+                          '£${item.totalPrice.toStringAsFixed(2)}',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
+                      ],
                     ),
-                  pw.SizedBox(height: 4),
-                ],
-              )).toList(),
+                    // Display rice modifier if it exists
+                    if (riceModifier != null)
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.only(left: 16, top: 2),
+                        child: pw.Text(
+                          '+ $riceModifier',
+                          style: const pw.TextStyle(
+                            fontSize: 10,
+                            color: PdfColors.grey700,
+                          ),
+                        ),
+                      ),
+                    // Display special instructions with new styling
+                    if (item.specialInstructions?.isNotEmpty == true)
+                      pw.Padding(
+                          padding: const pw.EdgeInsets.only(left: 16, top: 4),
+                          child: pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors
+                                  .yellow50, // A subtle yellow background
+                              borderRadius: const pw.BorderRadius.all(
+                                  pw.Radius.circular(4)),
+                            ),
+                            child: pw.Text(
+                              'Note: ${item.specialInstructions}',
+                              style: pw.TextStyle(
+                                fontSize: 10,
+                                fontStyle: pw.FontStyle.italic,
+                                fontWeight: pw.FontWeight.bold, // Make it bold
+                                color: PdfColors.grey800, // Darker text color
+                              ),
+                            ),
+                          )),
+                    pw.SizedBox(height: 8), // Increased spacing between items
+                  ],
+                );
+              }).toList(),
 
               pw.SizedBox(height: 8),
-              pw.Container(width: double.infinity, height: 1, color: PdfColors.black),
+              pw.Container(
+                  width: double.infinity, height: 1, color: PdfColors.black),
               pw.SizedBox(height: 8),
 
               // Totals
@@ -196,7 +246,8 @@ class WindowsPrinterService {
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Text('Discounted Subtotal:'),
-                    pw.Text('£${order.subtotalAfterDiscount.toStringAsFixed(2)}'),
+                    pw.Text(
+                        '£${order.subtotalAfterDiscount.toStringAsFixed(2)}'),
                   ],
                 ),
               ],
@@ -210,7 +261,8 @@ class WindowsPrinterService {
                   ],
                 ),
 
-              pw.Container(width: double.infinity, height: 1, color: PdfColors.black),
+              pw.Container(
+                  width: double.infinity, height: 1, color: PdfColors.black),
               pw.SizedBox(height: 4),
 
               pw.Row(
@@ -242,7 +294,8 @@ class WindowsPrinterService {
               ),
 
               pw.SizedBox(height: 16),
-              pw.Container(width: double.infinity, height: 1, color: PdfColors.black),
+              pw.Container(
+                  width: double.infinity, height: 1, color: PdfColors.black),
               pw.SizedBox(height: 8),
 
               // Footer
@@ -271,7 +324,7 @@ class WindowsPrinterService {
   static Future<void> testPrint() async {
     try {
       final pdf = pw.Document();
-      
+
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
@@ -289,7 +342,8 @@ class WindowsPrinterService {
                 ),
                 pw.Text('INDIAN CUISINE'),
                 pw.SizedBox(height: 16),
-                pw.Container(width: double.infinity, height: 1, color: PdfColors.black),
+                pw.Container(
+                    width: double.infinity, height: 1, color: PdfColors.black),
                 pw.SizedBox(height: 16),
                 pw.Text(
                   'PRINTER TEST',
@@ -304,7 +358,8 @@ class WindowsPrinterService {
                 pw.SizedBox(height: 16),
                 pw.Text('Test completed successfully!'),
                 pw.SizedBox(height: 16),
-                pw.Container(width: double.infinity, height: 1, color: PdfColors.black),
+                pw.Container(
+                    width: double.infinity, height: 1, color: PdfColors.black),
               ],
             );
           },
@@ -337,7 +392,7 @@ class WindowsPrinterService {
   // Show printer selection dialog
   static Future<void> showPrinterSelectionDialog(BuildContext context) async {
     final printers = await getAvailablePrinters();
-    
+
     if (printers.isEmpty) {
       if (context.mounted) {
         showDialog(
@@ -345,7 +400,8 @@ class WindowsPrinterService {
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('No Printers Found'),
-              content: const Text('No printers were found. Please ensure a printer is installed and available.'),
+              content: const Text(
+                  'No printers were found. Please ensure a printer is installed and available.'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -379,7 +435,7 @@ class WindowsPrinterService {
                       itemBuilder: (context, index) {
                         final printer = printers[index];
                         final isSelected = _selectedPrinter == printer.url;
-                        
+
                         return ListTile(
                           title: Text(printer.name),
                           subtitle: Text(printer.url),
@@ -392,7 +448,8 @@ class WindowsPrinterService {
                             Navigator.of(context).pop();
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Selected: ${printer.name}')),
+                                SnackBar(
+                                    content: Text('Selected: ${printer.name}')),
                               );
                             }
                           },
@@ -416,7 +473,8 @@ class WindowsPrinterService {
                       await testPrint();
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Test print sent successfully')),
+                          const SnackBar(
+                              content: Text('Test print sent successfully')),
                         );
                       }
                     } catch (e) {
