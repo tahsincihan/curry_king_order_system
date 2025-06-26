@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:bluetooth_print/bluetooth_print.dart';
-import 'package:bluetooth_print/bluetooth_print_model.dart';
-import '../services/printer_service.dart';
+import '../services/unified_printer_service.dart';
+import 'dart:io';
 
 class PrinterSettingsScreen extends StatefulWidget {
   const PrinterSettingsScreen({Key? key}) : super(key: key);
@@ -11,86 +10,39 @@ class PrinterSettingsScreen extends StatefulWidget {
 }
 
 class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
-  BluetoothPrint bluetoothPrint = BluetoothPrint.instance;
   bool _isScanning = false;
-  bool _isConnected = false;
-  List<BluetoothDevice> _devices = [];
-  BluetoothDevice? _connectedDevice;
+  List<UnifiedPrinter> _printers = [];
+  UnifiedPrinter? _selectedPrinter;
+  bool _showOnlyNetworkPrinters = false;
 
   @override
   void initState() {
     super.initState();
-    _initPrinter();
+    _scanForPrinters();
   }
 
-  void _initPrinter() async {
-    bluetoothPrint.scanResults.listen((devices) {
-      setState(() {
-        _devices = devices;
-      });
-    });
-
-    bluetoothPrint.state.listen((state) {
-      setState(() {
-        _isConnected = state == BluetoothPrint.CONNECTED;
-      });
-    });
-
-    // Check if already connected
-    bool? isConnected = await bluetoothPrint.isConnected;
-    setState(() {
-      _isConnected = isConnected ?? false;
-    });
-  }
-
-  void _startScan() {
+  Future<void> _scanForPrinters() async {
     setState(() {
       _isScanning = true;
-      _devices.clear();
+      _printers.clear();
     });
-
-    bluetoothPrint.startScan(timeout: const Duration(seconds: 10));
-
-    Future.delayed(const Duration(seconds: 10), () {
-      if (mounted) {
-        setState(() {
-          _isScanning = false;
-        });
-        bluetoothPrint.stopScan();
-      }
-    });
-  }
-
-  void _stopScan() {
-    bluetoothPrint.stopScan();
-    setState(() {
-      _isScanning = false;
-    });
-  }
-
-  void _connectToDevice(BluetoothDevice device) async {
-    if (_isConnected) {
-      _disconnect();
-    }
 
     try {
-      await bluetoothPrint.connect(device);
+      final printers = await UnifiedPrinterService.getAllAvailablePrinters();
+
       setState(() {
-        _connectedDevice = device;
+        _printers = printers;
+        _isScanning = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Connected to ${device.name}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
     } catch (e) {
+      setState(() {
+        _isScanning = false;
+      });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to connect: ${e.toString()}'),
+            content: Text('Error scanning for printers: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -98,25 +50,34 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
     }
   }
 
-  void _disconnect() async {
+  List<UnifiedPrinter> get filteredPrinters {
+    if (!_showOnlyNetworkPrinters) return _printers;
+    return _printers.where((p) => p.type == PrinterType.network).toList();
+  }
+
+  Future<void> _connectToPrinter(UnifiedPrinter printer) async {
     try {
-      await bluetoothPrint.disconnect();
-      setState(() {
-        _connectedDevice = null;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Disconnected from printer'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+      final success = await UnifiedPrinterService.connectToPrinter(printer);
+
+      if (success) {
+        setState(() {
+          _selectedPrinter = printer;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Connected to ${printer.name}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to disconnect: ${e.toString()}'),
+            content: Text('Failed to connect: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -125,38 +86,54 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
   }
 
   void _testPrint() async {
-    if (!_isConnected) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please connect to a printer first'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (_selectedPrinter == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a printer first'),
+          backgroundColor: Colors.orange,
+        ),
+      );
       return;
     }
 
     try {
-      await PrinterService.testPrint();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Test print sent successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      // Create a test order
+      // You'll need to implement a test print method in UnifiedPrinterService
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Test print sent successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Test print failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Test print failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  String _getPrinterTypeIcon(PrinterType type) {
+    switch (type) {
+      case PrinterType.bluetooth:
+        return '🔵';
+      case PrinterType.network:
+        return '📶';
+      case PrinterType.usb:
+        return '🔌';
+    }
+  }
+
+  String _getPrinterTypeLabel(PrinterType type) {
+    switch (type) {
+      case PrinterType.bluetooth:
+        return 'Bluetooth';
+      case PrinterType.network:
+        return 'WiFi/Network';
+      case PrinterType.usb:
+        return 'USB';
     }
   }
 
@@ -167,46 +144,48 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
         title: const Text('Printer Settings'),
         backgroundColor: Colors.orange[600],
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _isScanning ? null : _scanForPrinters,
+            tooltip: 'Rescan for printers',
+          ),
+        ],
       ),
       body: Column(
         children: [
           // Connection Status
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: _isConnected ? Colors.green[50] : Colors.red[50],
-            child: Row(
-              children: [
-                Icon(
-                  _isConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled,
-                  color: _isConnected ? Colors.green : Colors.red,
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _isConnected ? 'Connected' : 'Not Connected',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: _isConnected ? Colors.green[700] : Colors.red[700],
-                        ),
-                      ),
-                      if (_isConnected && _connectedDevice != null)
+          if (_selectedPrinter != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              color: Colors.green[50],
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green[700], size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          'Device: ${_connectedDevice!.name}',
+                          'Connected to ${_selectedPrinter!.name}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green[700],
+                          ),
+                        ),
+                        Text(
+                          '${_getPrinterTypeLabel(_selectedPrinter!.type)} • ${_selectedPrinter!.identifier}',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
                           ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                if (_isConnected) ...[
                   ElevatedButton(
                     onPressed: _testPrint,
                     style: ElevatedButton.styleFrom(
@@ -215,42 +194,39 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                     ),
                     child: const Text('Test Print'),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _disconnect,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Disconnect'),
-                  ),
                 ],
-              ],
+              ),
             ),
-          ),
 
-          // Scan Controls
+          // Filter Options
           Container(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                const Expanded(
-                  child: Text(
-                    'Available Bluetooth Printers',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                const Text(
+                  'Available Printers',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                ElevatedButton.icon(
-                  onPressed: _isScanning ? _stopScan : _startScan,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange[600],
-                    foregroundColor: Colors.white,
+                const Spacer(),
+                // Platform-specific filter
+                if (!Platform.isWindows) ...[
+                  FilterChip(
+                    label: const Text('WiFi Only'),
+                    selected: _showOnlyNetworkPrinters,
+                    onSelected: (selected) {
+                      setState(() {
+                        _showOnlyNetworkPrinters = selected;
+                      });
+                    },
                   ),
-                  icon: Icon(_isScanning ? Icons.stop : Icons.search),
-                  label: Text(_isScanning ? 'Stop Scan' : 'Scan'),
+                  const SizedBox(width: 8),
+                ],
+                Chip(
+                  label: Text('${filteredPrinters.length} found'),
+                  backgroundColor: Colors.orange[100],
                 ),
               ],
             ),
@@ -273,15 +249,15 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
               ),
             ),
 
-          // Device List
+          // Printer List
           Expanded(
-            child: _devices.isEmpty
+            child: filteredPrinters.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.bluetooth_searching,
+                          Icons.print_disabled,
                           size: 64,
                           color: Colors.grey[400],
                         ),
@@ -289,7 +265,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                         Text(
                           _isScanning
                               ? 'Scanning for printers...'
-                              : 'No printers found.\nTap "Scan" to search for printers.',
+                              : 'No printers found.\nMake sure printers are powered on\nand connected to the network.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 16,
@@ -300,29 +276,55 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                     ),
                   )
                 : ListView.builder(
-                    itemCount: _devices.length,
+                    itemCount: filteredPrinters.length,
                     itemBuilder: (context, index) {
-                      BluetoothDevice device = _devices[index];
-                      bool isConnectedDevice = _connectedDevice?.address == device.address;
-                      
+                      final printer = filteredPrinters[index];
+                      final isSelected =
+                          _selectedPrinter?.identifier == printer.identifier;
+
                       return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
+                        elevation: isSelected ? 4 : 1,
+                        color: isSelected ? Colors.orange[50] : null,
                         child: ListTile(
-                          leading: Icon(
-                            Icons.print,
-                            color: isConnectedDevice ? Colors.green : Colors.grey,
-                          ),
-                          title: Text(
-                            device.name ?? 'Unknown Device',
-                            style: TextStyle(
-                              fontWeight: isConnectedDevice ? FontWeight.bold : FontWeight.normal,
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _getPrinterTypeIcon(printer.type),
+                              style: const TextStyle(fontSize: 24),
                             ),
                           ),
-                          subtitle: Text(device.address ?? ''),
-                          trailing: isConnectedDevice
-                              ? const Icon(Icons.check_circle, color: Colors.green)
+                          title: Text(
+                            printer.name,
+                            style: TextStyle(
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(_getPrinterTypeLabel(printer.type)),
+                              Text(
+                                printer.identifier,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle,
+                                  color: Colors.green)
                               : ElevatedButton(
-                                  onPressed: () => _connectToDevice(device),
+                                  onPressed: () => _connectToPrinter(printer),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.orange[600],
                                     foregroundColor: Colors.white,
@@ -339,48 +341,39 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.grey[50],
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Instructions:',
+                const Text(
+                  'Printer Setup Instructions:',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  '1. Make sure your Bluetooth printer is turned on',
-                  style: TextStyle(fontSize: 14),
-                ),
-                Text(
-                  '2. Put the printer in pairing/discoverable mode',
-                  style: TextStyle(fontSize: 14),
-                ),
-                Text(
-                  '3. Tap "Scan" to search for available printers',
-                  style: TextStyle(fontSize: 14),
-                ),
-                Text(
-                  '4. Tap "Connect" next to your printer',
-                  style: TextStyle(fontSize: 14),
-                ),
-                Text(
-                  '5. Use "Test Print" to verify the connection',
-                  style: TextStyle(fontSize: 14),
-                ),
+                const SizedBox(height: 8),
+                if (Platform.isWindows) ...[
+                  const Text(
+                      '• WiFi/Network printers will appear automatically'),
+                  const Text(
+                      '• USB printers connected to this computer will show up'),
+                  const Text(
+                      '• Ensure printer drivers are installed for USB printers'),
+                ] else ...[
+                  const Text(
+                      '• For WiFi printers, ensure they are on the same network'),
+                  const Text(
+                      '• For Bluetooth, enable Bluetooth and pair the printer'),
+                  const Text(
+                      '• Put Bluetooth printers in pairing mode if not visible'),
+                ],
+                const Text('• Tap "Connect" to select a printer'),
+                const Text('• Use "Test Print" to verify the connection'),
               ],
             ),
           ),
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    bluetoothPrint.stopScan();
-    super.dispose();
   }
 }

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/order_provider.dart';
 import '../services/sales_provider.dart';
 import '../model/order_model.dart';
-import '../services/printer_service.dart';
+import '../services/unified_printer_service.dart';
 
 class OrderSummaryScreen extends StatelessWidget {
   const OrderSummaryScreen({Key? key}) : super(key: key);
@@ -19,7 +19,7 @@ class OrderSummaryScreen extends StatelessWidget {
       body: Consumer<OrderProvider>(
         builder: (context, orderProvider, child) {
           Order order = orderProvider.createOrder();
-          
+
           return Column(
             children: [
               Expanded(
@@ -38,15 +38,17 @@ class OrderSummaryScreen extends StatelessWidget {
                               Row(
                                 children: [
                                   Icon(
-                                    order.orderType == 'takeaway' 
-                                        ? Icons.takeout_dining 
+                                    order.orderType == 'takeaway'
+                                        ? Icons.takeout_dining
                                         : Icons.restaurant_menu,
                                     color: Colors.orange[600],
                                     size: 24,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    order.orderType == 'takeaway' ? 'TAKEAWAY ORDER' : 'DINE IN ORDER',
+                                    order.orderType == 'takeaway'
+                                        ? 'TAKEAWAY ORDER'
+                                        : 'DINE IN ORDER',
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
@@ -64,9 +66,9 @@ class OrderSummaryScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Customer Information
                       if (order.orderType == 'takeaway') ...[
                         Card(
@@ -83,16 +85,23 @@ class OrderSummaryScreen extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-                                _buildInfoRow('Name', order.customerInfo.name ?? 'N/A'),
+                                _buildInfoRow(
+                                    'Name', order.customerInfo.name ?? 'N/A'),
                                 if (order.customerInfo.isDelivery) ...[
                                   _buildInfoRow('Type', 'Delivery'),
-                                  _buildInfoRow('Address', order.customerInfo.address ?? 'N/A'),
-                                  _buildInfoRow('Postcode', order.customerInfo.postcode ?? 'N/A'),
-                                  _buildInfoRow('Phone', order.customerInfo.phoneNumber ?? 'N/A'),
+                                  _buildInfoRow('Address',
+                                      order.customerInfo.address ?? 'N/A'),
+                                  _buildInfoRow('Postcode',
+                                      order.customerInfo.postcode ?? 'N/A'),
+                                  _buildInfoRow('Phone',
+                                      order.customerInfo.phoneNumber ?? 'N/A'),
                                 ] else ...[
                                   _buildInfoRow('Type', 'Collection'),
-                                  if (order.customerInfo.phoneNumber?.isNotEmpty == true)
-                                    _buildInfoRow('Phone', order.customerInfo.phoneNumber!),
+                                  if (order.customerInfo.phoneNumber
+                                          ?.isNotEmpty ==
+                                      true)
+                                    _buildInfoRow('Phone',
+                                        order.customerInfo.phoneNumber!),
                                 ],
                               ],
                             ),
@@ -114,15 +123,16 @@ class OrderSummaryScreen extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-                                _buildInfoRow('Table Number', order.tableNumber ?? 'N/A'),
+                                _buildInfoRow(
+                                    'Table Number', order.tableNumber ?? 'N/A'),
                               ],
                             ),
                           ),
                         ),
                       ],
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Order Items
                       Card(
                         child: Padding(
@@ -138,14 +148,15 @@ class OrderSummaryScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              ...order.items.map((item) => _buildOrderItem(item)),
+                              ...order.items
+                                  .map((item) => _buildOrderItem(item)),
                             ],
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Payment Information
                       Card(
                         child: Padding(
@@ -162,25 +173,60 @@ class OrderSummaryScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 12),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text('Subtotal:'),
                                   Text('£${order.subtotal.toStringAsFixed(2)}'),
                                 ],
                               ),
+
+                              // Show discount if applied
+                              if (order.hasDiscount) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                        'Discount (${order.discountTypeDescription}):'),
+                                    Text(
+                                      '-£${order.discountAmount.toStringAsFixed(2)}',
+                                      style: const TextStyle(color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                                if (order.discountReason.isNotEmpty) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      'Reason: ${order.discountReason}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+
                               if (order.deliveryCharge > 0) ...[
                                 const SizedBox(height: 4),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     const Text('Delivery Charge:'),
-                                    Text('£${order.deliveryCharge.toStringAsFixed(2)}'),
+                                    Text(
+                                        '£${order.deliveryCharge.toStringAsFixed(2)}'),
                                   ],
                                 ),
                               ],
                               const Divider(),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
                                     'Total:',
@@ -201,12 +247,14 @@ class OrderSummaryScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 8),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text('Payment Method:'),
                                   Text(
                                     order.paymentMethod.toUpperCase(),
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -218,7 +266,7 @@ class OrderSummaryScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               // Print Button
               Container(
                 padding: const EdgeInsets.all(16),
@@ -253,7 +301,8 @@ class OrderSummaryScreen extends StatelessWidget {
                         icon: const Icon(Icons.print),
                         label: const Text(
                           'Print Order',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -292,6 +341,7 @@ class OrderSummaryScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '${item.quantity}x',
@@ -333,12 +383,49 @@ class OrderSummaryScreen extends StatelessWidget {
 
   void _printOrder(BuildContext context, Order order) async {
     try {
-      await PrinterService.printOrder(order);
-      
+      // Check if a printer is selected
+      if (UnifiedPrinterService.getCurrentPrinter() == null) {
+        // Show printer selection dialog
+        final shouldContinue = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              title: const Text('No Printer Selected'),
+              content: const Text(
+                  'Please select a printer before printing the order.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(false);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(true);
+                  },
+                  child: const Text('Select Printer'),
+                ),
+              ],
+            );
+          },
+        );
+
+        if (shouldContinue == true && context.mounted) {
+          Navigator.pushNamed(context, '/printer-settings');
+          return;
+        } else {
+          return;
+        }
+      }
+
+      // Print the order using unified printer service
+      await UnifiedPrinterService.printOrder(order);
+
       // Record the sale after successful print
       final salesProvider = Provider.of<SalesProvider>(context, listen: false);
       await salesProvider.addSale(order);
-      
+
       // Show success message and navigate back to home
       if (context.mounted) {
         showDialog(
@@ -346,13 +433,16 @@ class OrderSummaryScreen extends StatelessWidget {
           builder: (BuildContext dialogContext) {
             return AlertDialog(
               title: const Text('Order Completed Successfully'),
-              content: const Text('The order has been printed and recorded in sales.'),
+              content: const Text(
+                  'The order has been printed and recorded in sales.'),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.of(dialogContext).pop(); // Close dialog
-                    Navigator.of(context).popUntil((route) => route.isFirst); // Go to home
-                    Provider.of<OrderProvider>(context, listen: false).clearOrder();
+                    Navigator.of(context)
+                        .popUntil((route) => route.isFirst); // Go to home
+                    Provider.of<OrderProvider>(context, listen: false)
+                        .clearOrder();
                   },
                   child: const Text('OK'),
                 ),
@@ -397,7 +487,7 @@ class OrderSummaryScreen extends StatelessWidget {
     try {
       final salesProvider = Provider.of<SalesProvider>(context, listen: false);
       await salesProvider.addSale(order);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -405,7 +495,7 @@ class OrderSummaryScreen extends StatelessWidget {
             backgroundColor: Colors.green,
           ),
         );
-        
+
         Navigator.of(context).popUntil((route) => route.isFirst);
         Provider.of<OrderProvider>(context, listen: false).clearOrder();
       }
