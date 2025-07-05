@@ -173,187 +173,206 @@ class UnifiedPrinterService {
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.roll80,
-        margin: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        margin: const pw.EdgeInsets.all(0),
         build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // Compact Header
-              pw.Center(
-                child: pw.Column(
-                  children: [
-                    pw.Text(
-                      'CURRY KING',
-                      style: pw.TextStyle(
-                        fontSize: 18,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                    ),
-                    pw.SizedBox(height: 2),
-                    pw.Container(
-                      width: double.infinity,
-                      height: 0.5,
-                      color: PdfColors.black,
-                    ),
-                  ],
-                ),
-              ),
-
-              pw.SizedBox(height: 4),
-
-              // Order info in one line
-              pw.Text(
-                'Order #$orderId',
-                style:
-                    pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.Text(
-                'Date: ${_formatDateTime(order.orderTime)}',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-
-              pw.SizedBox(height: 2),
-              pw.Container(
-                  width: double.infinity, height: 0.5, color: PdfColors.black),
-              pw.SizedBox(height: 4),
-
-              // ORDER ITEMS header
-              pw.Text(
-                'ORDER ITEMS',
-                style:
-                    pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
-              ),
-
-              // Compact item list
-              ...order.items.map((item) {
-                return pw.Container(
-                  margin: const pw.EdgeInsets.symmetric(vertical: 1),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Expanded(
-                            child: pw.Text(
-                              '${item.quantity}x ${item.menuItem.name}',
-                              style: const pw.TextStyle(fontSize: 10),
-                            ),
-                          ),
-                          pw.Text(
-                            '£${item.totalPrice.toStringAsFixed(2)}',
-                            style: const pw.TextStyle(fontSize: 10),
-                          ),
-                        ],
-                      ),
-                      if (item.specialInstructions?.isNotEmpty == true)
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.only(left: 8, top: 1),
-                          child: pw.Text(
-                            'Note: ${item.specialInstructions}',
-                            style: const pw.TextStyle(
-                              fontSize: 8,
-                              color: PdfColors.grey600,
-                            ),
+          // Center the content and constrain its width
+          return pw.Center(
+            child: pw.SizedBox(
+              width: 72 * PdfPageFormat.mm, // Constrain content to 72mm width
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  // Compact Header
+                  pw.Center(
+                    child: pw.Column(
+                      children: [
+                        pw.Text(
+                          'CURRY KING',
+                          style: pw.TextStyle(
+                            fontSize: 18,
+                            fontWeight: pw.FontWeight.bold,
                           ),
                         ),
+                        pw.SizedBox(height: 2),
+                        pw.Container(
+                          width: double.infinity,
+                          height: 0.5,
+                          color: PdfColors.black,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  pw.SizedBox(height: 4),
+
+                  // Order info in one line
+                  pw.Text(
+                    'Order #$orderId',
+                    style: pw.TextStyle(
+                        fontSize: 12, fontWeight: pw.FontWeight.bold),
+                  ),
+                  pw.Text(
+                    'Date: ${_formatDateTime(order.orderTime)}',
+                    style: const pw.TextStyle(fontSize: 10),
+                  ),
+
+                  pw.SizedBox(height: 2),
+                  pw.Container(
+                      width: double.infinity,
+                      height: 0.5,
+                      color: PdfColors.black),
+                  pw.SizedBox(height: 4),
+
+                  // ORDER ITEMS header
+                  pw.Text(
+                    'ORDER ITEMS',
+                    style: pw.TextStyle(
+                        fontSize: 12, fontWeight: pw.FontWeight.bold),
+                  ),
+
+                  // Compact item list
+                  ...order.items.map((item) {
+                    return pw.Container(
+                      margin: const pw.EdgeInsets.symmetric(vertical: 1),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Row(
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Expanded(
+                                child: pw.Text(
+                                  '${item.quantity}x ${item.menuItem.name}',
+                                  style: const pw.TextStyle(fontSize: 10),
+                                ),
+                              ),
+                              pw.Text(
+                                '£${item.totalPrice.toStringAsFixed(2)}',
+                                style: const pw.TextStyle(fontSize: 10),
+                              ),
+                            ],
+                          ),
+                          if (item.specialInstructions?.isNotEmpty == true)
+                            pw.Padding(
+                              padding:
+                                  const pw.EdgeInsets.only(left: 8, top: 1),
+                              child: pw.Text(
+                                'Note: ${item.specialInstructions}',
+                                style: const pw.TextStyle(
+                                  fontSize: 8,
+                                  color: PdfColors.grey600,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+
+                  pw.SizedBox(height: 4),
+                  pw.Container(
+                      width: double.infinity,
+                      height: 0.5,
+                      color: PdfColors.black),
+                  pw.SizedBox(height: 2),
+
+                  // Compact totals
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Subtotal:',
+                          style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text('£${order.subtotal.toStringAsFixed(2)}',
+                          style: const pw.TextStyle(fontSize: 10)),
                     ],
                   ),
-                );
-              }).toList(),
+                  if (order.deliveryCharge > 0)
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Delivery:',
+                            style: const pw.TextStyle(fontSize: 10)),
+                        pw.Text('£${order.deliveryCharge.toStringAsFixed(2)}',
+                            style: const pw.TextStyle(fontSize: 10)),
+                      ],
+                    ),
 
-              pw.SizedBox(height: 4),
-              pw.Container(
-                  width: double.infinity, height: 0.5, color: PdfColors.black),
-              pw.SizedBox(height: 2),
+                  pw.SizedBox(height: 2),
+                  pw.Container(
+                      width: double.infinity,
+                      height: 0.5,
+                      color: PdfColors.black),
+                  pw.SizedBox(height: 2),
 
-              // Compact totals
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('Subtotal:', style: const pw.TextStyle(fontSize: 10)),
-                  pw.Text('£${order.subtotal.toStringAsFixed(2)}',
-                      style: const pw.TextStyle(fontSize: 10)),
-                ],
-              ),
-              if (order.deliveryCharge > 0)
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('Delivery:',
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        'TOTAL:',
+                        style: pw.TextStyle(
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.Text(
+                        '£${order.total.toStringAsFixed(2)}',
+                        style: pw.TextStyle(
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  pw.SizedBox(height: 4),
+                  pw.Container(
+                      width: double.infinity,
+                      height: 0.5,
+                      color: PdfColors.black),
+                  pw.SizedBox(height: 4),
+
+                  // Compact customer details
+                  if (order.orderType == 'takeaway') ...[
+                    pw.Text(
+                      'CUSTOMER DETAILS',
+                      style: pw.TextStyle(
+                          fontSize: 11, fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.Text('Name: ${order.customerInfo.name ?? 'N/A'}',
                         style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('£${order.deliveryCharge.toStringAsFixed(2)}',
-                        style: const pw.TextStyle(fontSize: 10)),
+                    if (order.customerInfo.isDelivery) ...[
+                      pw.Text('Type: DELIVERY',
+                          style: pw.TextStyle(
+                              fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                      pw.Text('Address: ${order.customerInfo.address ?? 'N/A'}',
+                          style: const pw.TextStyle(fontSize: 9)),
+                      pw.Text(
+                          'Postcode: ${order.customerInfo.postcode ?? 'N/A'}',
+                          style: const pw.TextStyle(fontSize: 9)),
+                      pw.Text(
+                          'Phone: ${order.customerInfo.phoneNumber ?? 'N/A'}',
+                          style: const pw.TextStyle(fontSize: 9)),
+                      pw.Text(
+                          'Status: ${order.paymentMethod == 'none' ? 'Paid' : order.paymentMethod.toUpperCase()}',
+                          style: pw.TextStyle(
+                              fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                    ] else ...[
+                      pw.Text('Type: DELIVERY',
+                          style: pw.TextStyle(
+                              fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                      if (order.customerInfo.phoneNumber?.isNotEmpty == true)
+                        pw.Text('Phone: ${order.customerInfo.phoneNumber}',
+                            style: const pw.TextStyle(fontSize: 9)),
+                    ],
+                  ] else ...[
+                    pw.Text('Table Number: ${order.tableNumber ?? 'N/A'}',
+                        style: pw.TextStyle(
+                            fontSize: 12, fontWeight: pw.FontWeight.bold)),
                   ],
-                ),
-
-              pw.SizedBox(height: 2),
-              pw.Container(
-                  width: double.infinity, height: 0.5, color: PdfColors.black),
-              pw.SizedBox(height: 2),
-
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(
-                    'TOTAL:',
-                    style: pw.TextStyle(
-                      fontSize: 14,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                  pw.Text(
-                    '£${order.total.toStringAsFixed(2)}',
-                    style: pw.TextStyle(
-                      fontSize: 14,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
                 ],
               ),
-
-              pw.SizedBox(height: 4),
-              pw.Container(
-                  width: double.infinity, height: 0.5, color: PdfColors.black),
-              pw.SizedBox(height: 4),
-
-              // Compact customer details
-              if (order.orderType == 'takeaway') ...[
-                pw.Text(
-                  'CUSTOMER DETAILS',
-                  style: pw.TextStyle(
-                      fontSize: 11, fontWeight: pw.FontWeight.bold),
-                ),
-                pw.Text('Name: ${order.customerInfo.name ?? 'N/A'}',
-                    style: const pw.TextStyle(fontSize: 10)),
-                if (order.customerInfo.isDelivery) ...[
-                  pw.Text('Type: DELIVERY',
-                      style: pw.TextStyle(
-                          fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                  pw.Text('Address: ${order.customerInfo.address ?? 'N/A'}',
-                      style: const pw.TextStyle(fontSize: 9)),
-                  pw.Text('Postcode: ${order.customerInfo.postcode ?? 'N/A'}',
-                      style: const pw.TextStyle(fontSize: 9)),
-                  pw.Text('Phone: ${order.customerInfo.phoneNumber ?? 'N/A'}',
-                      style: const pw.TextStyle(fontSize: 9)),
-                  pw.Text(
-                      'Status: ${order.paymentMethod == 'none' ? 'Paid' : order.paymentMethod.toUpperCase()}',
-                      style: pw.TextStyle(
-                          fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                ] else ...[
-                  pw.Text('Type: DELIVERY',
-                      style: pw.TextStyle(
-                          fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                  if (order.customerInfo.phoneNumber?.isNotEmpty == true)
-                    pw.Text('Phone: ${order.customerInfo.phoneNumber}',
-                        style: const pw.TextStyle(fontSize: 9)),
-                ],
-              ] else ...[
-                pw.Text('Table Number: ${order.tableNumber ?? 'N/A'}',
-                    style: pw.TextStyle(
-                        fontSize: 12, fontWeight: pw.FontWeight.bold)),
-              ],
-            ],
+            ),
           );
         },
       ),
