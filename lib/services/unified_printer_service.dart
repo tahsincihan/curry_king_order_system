@@ -173,7 +173,7 @@ class UnifiedPrinterService {
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.roll80,
-        margin: const pw.EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        margin: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
