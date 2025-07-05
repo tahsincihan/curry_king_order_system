@@ -39,19 +39,16 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(width: 16),
         ],
       ),
-      // **UPDATED: Flex values adjusted for a 60/40 layout split**
       body: Row(
         children: [
           // Left side - Main actions panel
           Expanded(
-            // Takes up 3 parts (60%) of the available space
             flex: 3,
             child: _buildActionPanel(context),
           ),
 
           // Right side - Live Order Dashboard
           Expanded(
-            // Takes up 2 parts (40%) of the available space
             flex: 2,
             child: _buildLiveOrdersPanel(context),
           ),
@@ -239,45 +236,74 @@ class _LiveOrderCard extends StatelessWidget {
 
   Widget _buildCardActions(BuildContext context, OrderProvider orderProvider,
       SalesProvider salesProvider) {
-    bool isCollection =
-        order.orderType == 'takeaway' && !order.customerInfo.isDelivery;
-
-    // For collection orders, a payment method must be explicitly chosen.
-    // For Dine-in or Delivery, we can assume a default or that it's handled differently.
-    bool canComplete = !isCollection ||
-        (order.paymentMethod == 'cash' || order.paymentMethod == 'card');
+    bool canComplete =
+        order.paymentMethod == 'cash' || order.paymentMethod == 'card';
 
     return Row(
       children: [
-        if (isCollection)
-          Row(
-            children: [
-              const Text('Pay with:'),
-              const SizedBox(width: 8),
-              FilterChip(
-                label: const Text('Cash'),
-                selected: order.paymentMethod == 'cash',
-                onSelected: (selected) {
-                  if (selected)
-                    orderProvider.updateLiveOrderPayment(order.id, 'cash');
-                },
-                backgroundColor: Colors.grey[200],
-                selectedColor: Colors.green[200],
-              ),
-              const SizedBox(width: 8),
-              FilterChip(
-                label: const Text('Card'),
-                selected: order.paymentMethod == 'card',
-                onSelected: (selected) {
-                  if (selected)
-                    orderProvider.updateLiveOrderPayment(order.id, 'card');
-                },
-                backgroundColor: Colors.grey[200],
-                selectedColor: Colors.blue[200],
-              ),
-            ],
-          ),
+        Row(
+          children: [
+            const Text('Pay with:'),
+            const SizedBox(width: 8),
+            FilterChip(
+              label: const Text('Cash'),
+              selected: order.paymentMethod == 'cash',
+              onSelected: (selected) {
+                if (selected) {
+                  orderProvider.updateLiveOrderPayment(order.id, 'cash');
+                }
+              },
+              backgroundColor: Colors.grey[200],
+              selectedColor: Colors.green[200],
+            ),
+            const SizedBox(width: 8),
+            FilterChip(
+              label: const Text('Card'),
+              selected: order.paymentMethod == 'card',
+              onSelected: (selected) {
+                if (selected) {
+                  orderProvider.updateLiveOrderPayment(order.id, 'card');
+                }
+              },
+              backgroundColor: Colors.grey[200],
+              selectedColor: Colors.blue[200],
+            ),
+          ],
+        ),
         const Spacer(),
+        // --- NEW REPRINT BUTTON ---
+        TextButton.icon(
+          onPressed: () async {
+            try {
+              // Use the existing unified printer service to print the order
+              await UnifiedPrinterService.printOrder(order);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Reprinting order...'),
+                    backgroundColor: Colors.blue,
+                  ),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Reprint failed: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+          icon: const Icon(Icons.print_outlined),
+          label: const Text('Reprint'),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.blue[700],
+          ),
+        ),
+        const SizedBox(width: 8),
+        // --- END OF NEW BUTTON ---
         ElevatedButton.icon(
           onPressed: canComplete
               ? () async {

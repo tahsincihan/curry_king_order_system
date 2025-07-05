@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/sales_provider.dart';
 import '../model/sales_model.dart';
+import 'order_history_screen.dart'; // --- IMPORT THE NEW SCREEN ---
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({Key? key}) : super(key: key);
@@ -11,14 +12,15 @@ class SalesScreen extends StatefulWidget {
   _SalesScreenState createState() => _SalesScreenState();
 }
 
-class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStateMixin {
+class _SalesScreenState extends State<SalesScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Load sales data when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<SalesProvider>(context, listen: false).refreshSalesData();
@@ -39,17 +41,30 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
         backgroundColor: Colors.orange[600],
         foregroundColor: Colors.white,
         actions: [
+          // --- ADD THE NEW BUTTON HERE ---
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const OrderHistoryScreen()),
+              );
+            },
+            tooltip: 'Order History',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              Provider.of<SalesProvider>(context, listen: false).refreshSalesData();
+              Provider.of<SalesProvider>(context, listen: false)
+                  .refreshSalesData();
             },
             tooltip: 'Refresh Data',
           ),
           PopupMenuButton<String>(
             onSelected: (value) async {
-              final salesProvider = Provider.of<SalesProvider>(context, listen: false);
-              
+              final salesProvider =
+                  Provider.of<SalesProvider>(context, listen: false);
+
               switch (value) {
                 case 'cleanup':
                   await salesProvider.cleanupOldData();
@@ -66,7 +81,8 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text('Export Data'),
-                        content: Text('Export data generated: ${data['sales'].length} days of data'),
+                        content: Text(
+                            'Export data generated: ${data['sales'].length} days of data'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
@@ -82,7 +98,8 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('Clear All Data'),
-                      content: const Text('Are you sure you want to clear all sales data? This cannot be undone.'),
+                      content: const Text(
+                          'Are you sure you want to clear all sales data? This cannot be undone.'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context, false),
@@ -90,12 +107,13 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Clear', style: TextStyle(color: Colors.red)),
+                          child: const Text('Clear',
+                              style: TextStyle(color: Colors.red)),
                         ),
                       ],
                     ),
                   );
-                  
+
                   if (confirmed == true) {
                     await salesProvider.clearAllData();
                     if (mounted) {
@@ -119,7 +137,8 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
               const PopupMenuDivider(),
               const PopupMenuItem(
                 value: 'clear',
-                child: Text('Clear All Data', style: TextStyle(color: Colors.red)),
+                child:
+                    Text('Clear All Data', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
@@ -159,7 +178,7 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
 
   Widget _buildOverviewTab(SalesProvider salesProvider) {
     final percentages = salesProvider.getPaymentMethodPercentages();
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -187,9 +206,9 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               Expanded(
@@ -226,16 +245,13 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  
                   _buildPaymentRow(
                     'Cash Sales',
                     salesProvider.twoDayCash,
                     percentages['cash'] ?? 0,
                     Colors.green,
                   ),
-                  
                   const SizedBox(height: 8),
-                  
                   _buildPaymentRow(
                     'Card Sales',
                     salesProvider.twoDayCard,
@@ -261,16 +277,13 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  
                   _buildDailyComparisonRow(
                     'Today',
                     salesProvider.todayTotal,
                     salesProvider.todayOrders,
                     true,
                   ),
-                  
                   const SizedBox(height: 8),
-                  
                   _buildDailyComparisonRow(
                     'Yesterday',
                     salesProvider.yesterdayTotal,
@@ -288,7 +301,7 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
 
   Widget _buildTodayTab(SalesProvider salesProvider) {
     final hourlyData = salesProvider.getTodayHourlyBreakdown();
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -303,10 +316,10 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                 children: [
                   Text(
                     'Today - ${DateFormat('EEEE, MMM d').format(DateTime.now())}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  
                   Row(
                     children: [
                       Expanded(
@@ -341,9 +354,7 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                       ),
                     ],
                   ),
-                  
                   const SizedBox(height: 16),
-                  
                   Row(
                     children: [
                       Expanded(
@@ -351,7 +362,8 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                           children: [
                             Text(
                               '£${salesProvider.todayCash.toStringAsFixed(2)}',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             const Text('Cash'),
                           ],
@@ -362,7 +374,8 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                           children: [
                             Text(
                               '£${salesProvider.todayCard.toStringAsFixed(2)}',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             const Text('Card'),
                           ],
@@ -387,15 +400,16 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                   children: [
                     const Text(
                       'Hourly Sales Breakdown',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
-                    
                     ...hourlyData.entries.map((entry) {
                       final hour = entry.key;
                       final amount = entry.value;
-                      final timeRange = '${hour.toString().padLeft(2, '0')}:00 - ${(hour + 1).toString().padLeft(2, '0')}:00';
-                      
+                      final timeRange =
+                          '${hour.toString().padLeft(2, '0')}:00 - ${(hour + 1).toString().padLeft(2, '0')}:00';
+
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(
@@ -404,7 +418,8 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                             Text(timeRange),
                             Text(
                               '£${amount.toStringAsFixed(2)}',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -422,7 +437,7 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
 
   Widget _buildTransactionsTab(SalesProvider salesProvider) {
     final transactions = salesProvider.recentTransactions;
-    
+
     return Column(
       children: [
         Container(
@@ -441,7 +456,6 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
             ],
           ),
         ),
-        
         Expanded(
           child: transactions.isEmpty
               ? const Center(
@@ -469,7 +483,8 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
+  Widget _buildSummaryCard(
+      String title, String value, IconData icon, Color color) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -499,7 +514,8 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildPaymentRow(String label, double amount, double percentage, Color color) {
+  Widget _buildPaymentRow(
+      String label, double amount, double percentage, Color color) {
     return Row(
       children: [
         Container(
@@ -527,11 +543,14 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildDailyComparisonRow(String day, double amount, int orders, bool isToday) {
+  Widget _buildDailyComparisonRow(
+      String day, double amount, int orders, bool isToday) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isToday ? Colors.orange.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+        color: isToday
+            ? Colors.orange.withOpacity(0.1)
+            : Colors.grey.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -570,14 +589,18 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: transaction.paymentMethod == 'cash' 
-                ? Colors.green.withOpacity(0.1) 
+            color: transaction.paymentMethod == 'cash'
+                ? Colors.green.withOpacity(0.1)
                 : Colors.blue.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
-            transaction.paymentMethod == 'cash' ? Icons.money : Icons.credit_card,
-            color: transaction.paymentMethod == 'cash' ? Colors.green : Colors.blue,
+            transaction.paymentMethod == 'cash'
+                ? Icons.money
+                : Icons.credit_card,
+            color: transaction.paymentMethod == 'cash'
+                ? Colors.green
+                : Colors.blue,
           ),
         ),
         title: Row(
@@ -590,8 +613,8 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: transaction.paymentMethod == 'cash' 
-                    ? Colors.green.withOpacity(0.2) 
+                color: transaction.paymentMethod == 'cash'
+                    ? Colors.green.withOpacity(0.2)
                     : Colors.blue.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -600,7 +623,9 @@ class _SalesScreenState extends State<SalesScreen> with SingleTickerProviderStat
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: transaction.paymentMethod == 'cash' ? Colors.green[700] : Colors.blue[700],
+                  color: transaction.paymentMethod == 'cash'
+                      ? Colors.green[700]
+                      : Colors.blue[700],
                 ),
               ),
             ),

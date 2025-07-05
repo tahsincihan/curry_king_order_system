@@ -149,7 +149,7 @@ class UnifiedPrinterService {
       printer: _selectedPrinter!.originalPrinter as Printer,
       onLayout: (format) => pdf,
       format: PdfPageFormat.roll80,
-      name: 'Order_${order.orderTime.millisecondsSinceEpoch}',
+      name: 'Order_${order.id}',
     );
   }
 
@@ -168,6 +168,7 @@ class UnifiedPrinterService {
   // **UPDATED PDF GENERATION LOGIC**
   static Future<Uint8List> _generateReceiptPDF(Order order) async {
     final pdf = pw.Document();
+    final orderId = 'Order #${order.id.substring(order.id.length - 5)}';
 
     pdf.addPage(
       pw.Page(
@@ -188,47 +189,21 @@ class UnifiedPrinterService {
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    // "INDIAN CUISINE" REMOVED
                     pw.SizedBox(height: 8),
                     pw.Divider(),
                   ],
                 ),
               ),
 
-              // Order Type
+              // Order Number and Date
               pw.Text(
-                order.orderType == 'takeaway'
-                    ? 'TAKEAWAY ORDER'
-                    : 'DINE IN ORDER',
+                orderId,
                 style: pw.TextStyle(
                   fontSize: 16,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
               pw.Text('Date: ${_formatDateTime(order.orderTime)}'),
-              pw.SizedBox(height: 8),
-
-              // Customer/Table Info
-              if (order.orderType == 'takeaway') ...[
-                pw.Text(
-                  'CUSTOMER DETAILS',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                ),
-                pw.Text('Name: ${order.customerInfo.name ?? 'N/A'}'),
-                if (order.customerInfo.isDelivery) ...[
-                  pw.Text('Type: DELIVERY'),
-                  pw.Text('Address: ${order.customerInfo.address ?? 'N/A'}'),
-                  pw.Text('Postcode: ${order.customerInfo.postcode ?? 'N/A'}'),
-                  pw.Text('Phone: ${order.customerInfo.phoneNumber ?? 'N/A'}'),
-                ] else ...[
-                  pw.Text('Type: COLLECTION'),
-                  if (order.customerInfo.phoneNumber?.isNotEmpty == true)
-                    pw.Text('Phone: ${order.customerInfo.phoneNumber}'),
-                ],
-              ] else ...[
-                pw.Text('Table: ${order.tableNumber ?? 'N/A'}'),
-              ],
-
               pw.Divider(),
 
               // Order Items
@@ -245,6 +220,7 @@ class UnifiedPrinterService {
                 String mainItemName = item.menuItem.name;
                 String? riceModifier;
 
+                // --- NEW LOGIC FOR RICE MODIFIER ---
                 if (mainItemName.contains(' with ')) {
                   var parts = mainItemName.split(' with ');
                   mainItemName = parts[0];
@@ -270,13 +246,16 @@ class UnifiedPrinterService {
                         ),
                       ],
                     ),
+                    // --- UPDATED RICE MODIFIER DISPLAY ---
                     if (riceModifier != null)
                       pw.Padding(
                         padding: const pw.EdgeInsets.only(left: 16, top: 2),
                         child: pw.Text(
                           '+ $riceModifier',
                           style: const pw.TextStyle(
-                              fontSize: 10, color: PdfColors.grey700),
+                            fontSize: 10,
+                            color: PdfColors.grey700,
+                          ), // Not bold
                         ),
                       ),
                     if (item.specialInstructions?.isNotEmpty == true)
@@ -316,7 +295,6 @@ class UnifiedPrinterService {
                   pw.Text('£${order.subtotal.toStringAsFixed(2)}'),
                 ],
               ),
-
               if (order.deliveryCharge > 0)
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -325,15 +303,12 @@ class UnifiedPrinterService {
                     pw.Text('£${order.deliveryCharge.toStringAsFixed(2)}'),
                   ],
                 ),
-
               pw.Divider(),
-
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
                     'TOTAL:',
-                    // FONT SIZE REDUCED
                     style: pw.TextStyle(
                       fontSize: 16,
                       fontWeight: pw.FontWeight.bold,
@@ -341,7 +316,6 @@ class UnifiedPrinterService {
                   ),
                   pw.Text(
                     '£${order.total.toStringAsFixed(2)}',
-                    // FONT SIZE REDUCED
                     style: pw.TextStyle(
                       fontSize: 16,
                       fontWeight: pw.FontWeight.bold,
@@ -350,30 +324,36 @@ class UnifiedPrinterService {
                 ],
               ),
 
-              pw.SizedBox(height: 8),
-              pw.Center(
-                child: pw.Text(
-                  'Payment: ${order.paymentMethod.toUpperCase()}',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                ),
-              ),
-
               pw.SizedBox(height: 16),
               pw.Divider(),
 
-              // Footer
-              pw.Center(
-                child: pw.Column(
-                  children: [
-                    pw.Text(
-                      'Thank you for your order!',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                    pw.SizedBox(height: 4),
-                    // "CURRY KING - INDIAN CUISINE" REMOVED FROM FOOTER
-                  ],
+              // Customer/Table Info (Moved to bottom)
+              if (order.orderType == 'takeaway') ...[
+                pw.Text(
+                  'CUSTOMER DETAILS',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                 ),
-              ),
+                pw.Text('Name: ${order.customerInfo.name ?? 'N/A'}'),
+                if (order.customerInfo.isDelivery) ...[
+                  pw.Text('Type: DELIVERY',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Text('Address: ${order.customerInfo.address ?? 'N/A'}'),
+                  pw.Text('Postcode: ${order.customerInfo.postcode ?? 'N/A'}'),
+                  pw.Text('Phone: ${order.customerInfo.phoneNumber ?? 'N/A'}'),
+                  pw.Text(
+                      'Status: ${order.paymentMethod == 'cash' ? 'Not Paid' : 'Paid'}',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                ] else ...[
+                  pw.Text('Type: COLLECTION',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  if (order.customerInfo.phoneNumber?.isNotEmpty == true)
+                    pw.Text('Phone: ${order.customerInfo.phoneNumber}'),
+                ],
+              ] else ...[
+                pw.Text('Table: ${order.tableNumber ?? 'N/A'}',
+                    style: pw.TextStyle(
+                        fontSize: 16, fontWeight: pw.FontWeight.bold)),
+              ],
             ],
           );
         },
@@ -386,6 +366,7 @@ class UnifiedPrinterService {
   // **UPDATED: Generate thermal printer friendly text receipt**
   static List<LineText> _generateBluetoothReceipt(Order order) {
     List<LineText> lines = [];
+    final orderId = 'Order #${order.id.substring(order.id.length - 5)}';
 
     // Header
     lines.add(LineText(
@@ -403,7 +384,7 @@ class UnifiedPrinterService {
     // Order Info
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
-        content: order.orderType.toUpperCase(),
+        content: orderId,
         weight: 1,
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
@@ -412,46 +393,6 @@ class UnifiedPrinterService {
         content: 'Date: ${_formatDateTime(order.orderTime)}',
         align: LineText.ALIGN_LEFT,
         linefeed: 1));
-
-    // Customer Info
-    if (order.orderType == 'takeaway') {
-      lines.add(LineText(
-          type: LineText.TYPE_TEXT,
-          content: 'CUSTOMER: ${order.customerInfo.name ?? 'N/A'}',
-          align: LineText.ALIGN_LEFT,
-          linefeed: 1));
-      lines.add(LineText(
-          type: LineText.TYPE_TEXT,
-          content:
-              'TYPE: ${order.customerInfo.isDelivery ? 'DELIVERY' : 'COLLECTION'}',
-          align: LineText.ALIGN_LEFT,
-          linefeed: 1));
-      if (order.customerInfo.isDelivery) {
-        lines.add(LineText(
-            type: LineText.TYPE_TEXT,
-            content: 'ADDRESS: ${order.customerInfo.address ?? 'N/A'}',
-            align: LineText.ALIGN_LEFT,
-            linefeed: 1));
-        lines.add(LineText(
-            type: LineText.TYPE_TEXT,
-            content: 'POSTCODE: ${order.customerInfo.postcode ?? 'N/A'}',
-            align: LineText.ALIGN_LEFT,
-            linefeed: 1));
-      }
-      lines.add(LineText(
-          type: LineText.TYPE_TEXT,
-          content: 'PHONE: ${order.customerInfo.phoneNumber ?? 'N/A'}',
-          align: LineText.ALIGN_LEFT,
-          linefeed: 1));
-    } else {
-      lines.add(LineText(
-          type: LineText.TYPE_TEXT,
-          content: 'TABLE: ${order.tableNumber ?? 'N/A'}',
-          weight: 1,
-          align: LineText.ALIGN_LEFT,
-          linefeed: 1));
-    }
-
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
         content: '--------------------------------',
@@ -469,6 +410,7 @@ class UnifiedPrinterService {
       String mainItemName = item.menuItem.name;
       String? riceModifier;
 
+      // --- NEW LOGIC FOR RICE MODIFIER ---
       if (mainItemName.contains(' with ')) {
         var parts = mainItemName.split(' with ');
         mainItemName = parts[0];
@@ -486,10 +428,12 @@ class UnifiedPrinterService {
           align: LineText.ALIGN_RIGHT,
           linefeed: 1));
 
+      // --- UPDATED RICE MODIFIER DISPLAY ---
       if (riceModifier != null) {
         lines.add(LineText(
             type: LineText.TYPE_TEXT,
             content: '  + $riceModifier',
+            weight: 0, // Not bold
             align: LineText.ALIGN_LEFT,
             linefeed: 1));
       }
@@ -538,30 +482,73 @@ class UnifiedPrinterService {
         content: '--------------------------------',
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
-    // WEIGHT OF TOTAL REDUCED
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
         content: 'TOTAL: £${order.total.toStringAsFixed(2)}',
-        weight: 1,
+        weight: 2, // Bolder Total
         align: LineText.ALIGN_RIGHT,
-        linefeed: 1));
-
-    lines.add(LineText(
-        type: LineText.TYPE_TEXT,
-        content: 'Payment: ${order.paymentMethod.toUpperCase()}',
-        weight: 1,
-        align: LineText.ALIGN_CENTER,
         linefeed: 2));
 
-    // Footer
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
-        content: 'Thank you for your order!',
-        weight: 1,
+        content: '--------------------------------',
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
-    // EXTRA LINEFEEDS REMOVED
-    lines.add(LineText(type: LineText.TYPE_TEXT, content: '', linefeed: 1));
+
+    // Customer Info (Moved to bottom)
+    if (order.orderType == 'takeaway') {
+      lines.add(LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'CUSTOMER: ${order.customerInfo.name ?? 'N/A'}',
+          align: LineText.ALIGN_LEFT,
+          linefeed: 1));
+      if (order.customerInfo.isDelivery) {
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: 'TYPE: DELIVERY',
+            weight: 1, // Bold Type
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: 'ADDRESS: ${order.customerInfo.address ?? 'N/A'}',
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: 'POSTCODE: ${order.customerInfo.postcode ?? 'N/A'}',
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content:
+                'STATUS: ${order.paymentMethod == 'cash' ? 'Not Paid' : 'Paid'}',
+            weight: 1, // Bold Status
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+      } else {
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: 'TYPE: COLLECTION',
+            weight: 1, // Bold Type
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+      }
+      lines.add(LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'PHONE: ${order.customerInfo.phoneNumber ?? 'N/A'}',
+          align: LineText.ALIGN_LEFT,
+          linefeed: 1));
+    } else {
+      lines.add(LineText(
+          type: LineText.TYPE_TEXT,
+          content: 'TABLE: ${order.tableNumber ?? 'N/A'}',
+          weight: 2, // Bolder Table
+          align: LineText.ALIGN_LEFT,
+          linefeed: 1));
+    }
+
+    lines.add(LineText(type: LineText.TYPE_TEXT, content: '', linefeed: 3));
 
     return lines;
   }

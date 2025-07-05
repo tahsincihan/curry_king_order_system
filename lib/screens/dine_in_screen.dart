@@ -22,12 +22,13 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
   final FocusNode searchFocusNode = FocusNode();
   List<MenuItem> searchResults = [];
   String lastSearchQuery = '';
-  
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<OrderProvider>(context, listen: false).setOrderType('dine-in');
+      Provider.of<OrderProvider>(context, listen: false)
+          .setOrderType('dine-in');
     });
   }
 
@@ -41,7 +42,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
 
   void _performSearch(String query) {
     lastSearchQuery = query;
-    
+
     if (query.isEmpty) {
       setState(() {
         searchResults = [];
@@ -51,9 +52,10 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
 
     setState(() {
       searchResults = MenuData.getAllMenuItems()
-          .where((item) => 
+          .where((item) =>
               item.name.toLowerCase().contains(query.toLowerCase()) ||
-              (item.description?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+              (item.description?.toLowerCase().contains(query.toLowerCase()) ??
+                  false) ||
               item.category.toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
@@ -83,7 +85,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
       _toggleSearch();
       return false;
     }
-    
+
     // If table form is shown, go back to menu
     if (showTableForm) {
       setState(() {
@@ -91,9 +93,9 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
       });
       return false;
     }
-    
+
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-    
+
     // Check if there are items in the cart
     if (orderProvider.orderItems.isNotEmpty) {
       // Show confirmation dialog
@@ -102,7 +104,8 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
         builder: (context) {
           return AlertDialog(
             title: const Text('Discard Order?'),
-            content: const Text('Are you sure you want to dismiss this order? All items will be lost.'),
+            content: const Text(
+                'Are you sure you want to dismiss this order? All items will be lost.'),
             actions: [
               TextButton(
                 onPressed: () {
@@ -116,7 +119,8 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                   orderProvider.clearOrder();
                   Navigator.of(context).pop(true); // Discard order
                 },
-                child: const Text('DISCARD', style: TextStyle(color: Colors.red)),
+                child:
+                    const Text('DISCARD', style: TextStyle(color: Colors.red)),
               ),
             ],
           );
@@ -124,7 +128,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
       );
       return shouldPop ?? false;
     }
-    
+
     return true; // If no items in cart, allow back navigation
   }
 
@@ -165,7 +169,8 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                         } else {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Add items to order first')),
+                              const SnackBar(
+                                  content: Text('Add items to order first')),
                             );
                           }
                         }
@@ -201,9 +206,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
             ),
           ],
         ),
-        body: showTableForm 
-            ? _buildTableForm() 
-            : _buildCategoryAndMenuScreen(),
+        body: showTableForm ? _buildTableForm() : _buildCategoryAndMenuScreen(),
       ),
     );
   }
@@ -239,7 +242,8 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                       ),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                     ),
                     onChanged: _performSearch,
                     textInputAction: TextInputAction.search,
@@ -247,7 +251,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                 )
               : const SizedBox.shrink(),
         ),
-        
+
         // Horizontal category list (hidden when searching)
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
@@ -261,9 +265,10 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                     itemBuilder: (context, index) {
                       String category = MenuData.getCategories()[index];
                       bool isSelected = category == selectedCategory;
-                      
+
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 4),
                         child: InkWell(
                           onTap: () {
                             setState(() {
@@ -271,19 +276,28 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                             });
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.orange[700] : Colors.transparent,
+                              color: isSelected
+                                  ? Colors.orange[700]
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: isSelected ? Colors.orange[700]! : Colors.grey[400]!,
+                                color: isSelected
+                                    ? Colors.orange[700]!
+                                    : Colors.grey[400]!,
                               ),
                             ),
                             child: Text(
                               category,
                               style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.grey[700],
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.grey[700],
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                                 fontSize: 14,
                               ),
                             ),
@@ -295,12 +309,12 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                 )
               : const SizedBox.shrink(),
         ),
-        
+
         // Category title and items
         Expanded(
           child: showSearch ? _buildSearchResults() : _buildMenuItems(),
         ),
-        
+
         // Order summary footer
         _buildOrderSummaryFooter(),
       ],
@@ -320,7 +334,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      searchResults.isEmpty 
+                      searchResults.isEmpty
                           ? 'No dishes found for "$lastSearchQuery"'
                           : '${searchResults.length} ${searchResults.length == 1 ? 'dish' : 'dishes'} found',
                       style: TextStyle(
@@ -342,19 +356,21 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
             ),
           ],
           Expanded(
-            child: searchResults.isEmpty 
+            child: searchResults.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          lastSearchQuery.isEmpty ? Icons.search : Icons.search_off,
+                          lastSearchQuery.isEmpty
+                              ? Icons.search
+                              : Icons.search_off,
                           size: 64,
                           color: Colors.grey[400],
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          lastSearchQuery.isEmpty 
+                          lastSearchQuery.isEmpty
                               ? 'Start typing to search for dishes'
                               : 'No dishes match your search.\nTry different keywords.',
                           textAlign: TextAlign.center,
@@ -367,7 +383,8 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                     ),
                   )
                 : ListView.builder(
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     itemCount: searchResults.length,
                     itemBuilder: (context, index) {
                       MenuItem item = searchResults[index];
@@ -382,7 +399,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
 
   Widget _buildMenuItems() {
     List<MenuItem> items = MenuData.getItemsByCategory(selectedCategory);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
@@ -412,16 +429,18 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
             ),
           ),
           Expanded(
-            child: items.isEmpty 
-            ? Center(child: Text('No items in this category', 
-                style: TextStyle(color: Colors.grey[600], fontSize: 16)))
-            : ListView.builder(
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  MenuItem item = items[index];
-                  return _buildMenuItem(item);
-                },
-              ),
+            child: items.isEmpty
+                ? Center(
+                    child: Text('No items in this category',
+                        style:
+                            TextStyle(color: Colors.grey[600], fontSize: 16)))
+                : ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      MenuItem item = items[index];
+                      return _buildMenuItem(item);
+                    },
+                  ),
           ),
         ],
       ),
@@ -434,17 +453,17 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
       if (!highlightSearch || lastSearchQuery.isEmpty) {
         return Text(text, style: style);
       }
-      
+
       final searchLower = lastSearchQuery.toLowerCase();
       final textLower = text.toLowerCase();
-      
+
       if (!textLower.contains(searchLower)) {
         return Text(text, style: style);
       }
-      
+
       final startIndex = textLower.indexOf(searchLower);
       final endIndex = startIndex + searchLower.length;
-      
+
       return RichText(
         text: TextSpan(
           style: style ?? const TextStyle(color: Colors.black),
@@ -462,7 +481,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
         ),
       );
     }
-    
+
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
@@ -495,7 +514,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    
+
                     // Category (always shown in search results)
                     if (showSearch || highlightSearch) ...[
                       const SizedBox(height: 2),
@@ -508,7 +527,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                         ),
                       ),
                     ],
-                    
+
                     // Description if available
                     if (item.description != null) ...[
                       const SizedBox(height: 4),
@@ -520,9 +539,9 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                         ),
                       ),
                     ],
-                    
+
                     const SizedBox(height: 4),
-                    
+
                     // Price - Show dine-in price
                     Text(
                       '£${item.getDineInPrice().toStringAsFixed(2)}',
@@ -535,7 +554,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                   ],
                 ),
               ),
-              
+
               // Add button
               Container(
                 decoration: BoxDecoration(
@@ -564,7 +583,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
         if (orderProvider.orderItems.isEmpty) {
           return const SizedBox.shrink(); // No footer if cart is empty
         }
-        
+
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -603,7 +622,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                   ],
                 ),
               ),
-              
+
               // View order button
               ElevatedButton(
                 onPressed: () {
@@ -614,7 +633,8 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange[700],
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 child: const Text(
                   'View Order',
@@ -661,7 +681,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Order summary
                 Card(
                   child: Padding(
@@ -685,16 +705,19 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                               children: [
                                 Text(
                                   '${item.quantity}x',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         item.menuItem.name,
-                                        style: const TextStyle(fontWeight: FontWeight.w500),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w500),
                                       ),
                                       if (item.specialInstructions != null)
                                         Text(
@@ -710,7 +733,8 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                                 ),
                                 Text(
                                   '£${item.totalPrice.toStringAsFixed(2)}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.close, size: 16),
@@ -718,8 +742,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                                   constraints: const BoxConstraints(),
                                   onPressed: () {
                                     orderProvider.removeItem(
-                                      orderProvider.orderItems.indexOf(item)
-                                    );
+                                        orderProvider.orderItems.indexOf(item));
                                   },
                                 ),
                               ],
@@ -752,7 +775,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Table Number Input
                 const Text(
                   'Table Number:',
@@ -769,7 +792,8 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
                     prefixIcon: const Icon(Icons.table_restaurant),
                   ),
                   keyboardType: TextInputType.number,
@@ -777,9 +801,9 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                     orderProvider.setTableNumber(value);
                   },
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Payment Method
                 const Text(
                   'Payment Method:',
@@ -791,6 +815,22 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('None'),
+                        selected: orderProvider.paymentMethod == 'none',
+                        onSelected: (selected) {
+                          if (selected) orderProvider.setPaymentMethod('none');
+                        },
+                        labelStyle: TextStyle(
+                          color: orderProvider.paymentMethod == 'none'
+                              ? Colors.white
+                              : Colors.black,
+                        ),
+                        selectedColor: Colors.orange[700],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: ChoiceChip(
                         label: const Text('Cash'),
@@ -824,31 +864,34 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Submit Button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: tableController.text.isNotEmpty ? () async {
-                      if (mounted) {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => OrderSummaryScreen(),
-                          ),
-                        );
-                      }
-                    } : null,
+                    onPressed: tableController.text.isNotEmpty
+                        ? () async {
+                            if (mounted) {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => OrderSummaryScreen(),
+                                ),
+                              );
+                            }
+                          }
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange[700],
                       foregroundColor: Colors.white,
                     ),
                     child: const Text(
                       'Review Order',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),

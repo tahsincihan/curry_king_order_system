@@ -6,7 +6,7 @@ class OrderProvider extends ChangeNotifier {
   List<OrderItem> _orderItems = [];
   CustomerInfo _customerInfo = CustomerInfo();
   String _orderType = 'takeaway';
-  String _paymentMethod = 'cash';
+  String _paymentMethod = 'none'; // Default to 'none'
   String? _tableNumber;
   double _deliveryCharge = 0.0;
 
@@ -175,7 +175,7 @@ class OrderProvider extends ChangeNotifier {
     _orderItems.clear();
     _customerInfo = CustomerInfo();
     _orderType = 'takeaway';
-    _paymentMethod = 'cash';
+    _paymentMethod = 'none'; // Reset to 'none'
     _tableNumber = null;
     _deliveryCharge = 0.0;
     // We don't notify listeners here because it's usually part of another action

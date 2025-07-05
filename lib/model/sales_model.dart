@@ -38,10 +38,10 @@ class DailySales extends HiveObject {
   });
 
   double get totalSales => cashSales + cardSales;
-  
+
   void addTransaction(SaleTransaction transaction) {
     transactions = [...transactions, transaction];
-    
+
     if (transaction.paymentMethod == 'cash') {
       cashSales += transaction.amount;
       cashOrders++;
@@ -49,7 +49,7 @@ class DailySales extends HiveObject {
       cardSales += transaction.amount;
       cardOrders++;
     }
-    
+
     totalOrders++;
     deliveryCharges += transaction.deliveryCharge;
   }
@@ -84,6 +84,10 @@ class SaleTransaction extends HiveObject {
   @HiveField(8)
   String? tableNumber;
 
+  // --- NEW FIELD TO STORE ITEMS ---
+  @HiveField(9)
+  List<Map> items; // Storing items as a list of Maps
+
   SaleTransaction({
     required this.orderId,
     required this.timestamp,
@@ -94,6 +98,7 @@ class SaleTransaction extends HiveObject {
     this.itemCount = 0,
     this.customerName,
     this.tableNumber,
+    this.items = const [], // Initialize with an empty list
   });
 }
 
@@ -174,13 +179,16 @@ class SaleTransactionAdapter extends TypeAdapter<SaleTransaction> {
       itemCount: fields[6] as int? ?? 0,
       customerName: fields[7] as String?,
       tableNumber: fields[8] as String?,
+      // --- READ THE NEW ITEMS FIELD ---
+      items: (fields[9] as List?)?.cast<Map>() ?? [],
     );
   }
 
   @override
   void write(BinaryWriter writer, SaleTransaction obj) {
     writer
-      ..writeByte(9)
+      // --- INCREASED FIELD COUNT TO 10 ---
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.orderId)
       ..writeByte(1)
@@ -198,7 +206,10 @@ class SaleTransactionAdapter extends TypeAdapter<SaleTransaction> {
       ..writeByte(7)
       ..write(obj.customerName)
       ..writeByte(8)
-      ..write(obj.tableNumber);
+      ..write(obj.tableNumber)
+      // --- WRITE THE NEW ITEMS FIELD ---
+      ..writeByte(9)
+      ..write(obj.items);
   }
 
   @override

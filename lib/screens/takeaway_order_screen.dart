@@ -21,12 +21,13 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   final FocusNode searchFocusNode = FocusNode();
   List<MenuItem> searchResults = [];
   String lastSearchQuery = '';
-  
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<OrderProvider>(context, listen: false).setOrderType('takeaway');
+      Provider.of<OrderProvider>(context, listen: false)
+          .setOrderType('takeaway');
     });
   }
 
@@ -39,7 +40,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
 
   void _performSearch(String query) {
     lastSearchQuery = query;
-    
+
     if (query.isEmpty) {
       setState(() {
         searchResults = [];
@@ -49,9 +50,10 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
 
     setState(() {
       searchResults = MenuData.getAllMenuItems()
-          .where((item) => 
+          .where((item) =>
               item.name.toLowerCase().contains(query.toLowerCase()) ||
-              (item.description?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+              (item.description?.toLowerCase().contains(query.toLowerCase()) ??
+                  false) ||
               item.category.toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
@@ -81,7 +83,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
       _toggleSearch();
       return false;
     }
-    
+
     // If customer form is shown, go back to menu
     if (showCustomerForm) {
       setState(() {
@@ -89,9 +91,9 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
       });
       return false;
     }
-    
+
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-    
+
     // Check if there are items in the cart
     if (orderProvider.orderItems.isNotEmpty) {
       // Show confirmation dialog
@@ -100,7 +102,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
         builder: (context) {
           return AlertDialog(
             title: const Text('Discard Order?'),
-            content: const Text('Are you sure you want to dismiss this order? All items will be lost.'),
+            content: const Text(
+                'Are you sure you want to dismiss this order? All items will be lost.'),
             actions: [
               TextButton(
                 onPressed: () {
@@ -114,7 +117,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   orderProvider.clearOrder();
                   Navigator.of(context).pop(true); // Discard order
                 },
-                child: const Text('DISCARD', style: TextStyle(color: Colors.red)),
+                child:
+                    const Text('DISCARD', style: TextStyle(color: Colors.red)),
               ),
             ],
           );
@@ -122,7 +126,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
       );
       return shouldPop ?? false;
     }
-    
+
     return true; // If no items in cart, allow back navigation
   }
 
@@ -163,7 +167,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                         } else {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Add items to cart first')),
+                              const SnackBar(
+                                  content: Text('Add items to cart first')),
                             );
                           }
                         }
@@ -199,8 +204,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
             ),
           ],
         ),
-        body: showCustomerForm 
-            ? _buildCustomerForm() 
+        body: showCustomerForm
+            ? _buildCustomerForm()
             : _buildCategoryAndMenuScreen(),
       ),
     );
@@ -237,7 +242,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                       ),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                     ),
                     onChanged: _performSearch,
                     textInputAction: TextInputAction.search,
@@ -245,7 +251,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                 )
               : const SizedBox.shrink(),
         ),
-        
+
         // Horizontal category list (hidden when searching)
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
@@ -259,9 +265,10 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     itemBuilder: (context, index) {
                       String category = MenuData.getCategories()[index];
                       bool isSelected = category == selectedCategory;
-                      
+
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 4),
                         child: InkWell(
                           onTap: () {
                             setState(() {
@@ -269,19 +276,28 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                             });
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.orange[600] : Colors.transparent,
+                              color: isSelected
+                                  ? Colors.orange[600]
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: isSelected ? Colors.orange[600]! : Colors.grey[400]!,
+                                color: isSelected
+                                    ? Colors.orange[600]!
+                                    : Colors.grey[400]!,
                               ),
                             ),
                             child: Text(
                               category,
                               style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.grey[700],
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.grey[700],
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                                 fontSize: 14,
                               ),
                             ),
@@ -293,12 +309,12 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                 )
               : const SizedBox.shrink(),
         ),
-        
+
         // Category title and items
         Expanded(
           child: showSearch ? _buildSearchResults() : _buildMenuItems(),
         ),
-        
+
         // Order summary footer
         _buildOrderSummaryFooter(),
       ],
@@ -318,7 +334,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      searchResults.isEmpty 
+                      searchResults.isEmpty
                           ? 'No dishes found for "$lastSearchQuery"'
                           : '${searchResults.length} ${searchResults.length == 1 ? 'dish' : 'dishes'} found',
                       style: TextStyle(
@@ -340,19 +356,21 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
             ),
           ],
           Expanded(
-            child: searchResults.isEmpty 
+            child: searchResults.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          lastSearchQuery.isEmpty ? Icons.search : Icons.search_off,
+                          lastSearchQuery.isEmpty
+                              ? Icons.search
+                              : Icons.search_off,
                           size: 64,
                           color: Colors.grey[400],
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          lastSearchQuery.isEmpty 
+                          lastSearchQuery.isEmpty
                               ? 'Start typing to search for dishes'
                               : 'No dishes match your search.\nTry different keywords.',
                           textAlign: TextAlign.center,
@@ -365,7 +383,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     ),
                   )
                 : ListView.builder(
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     itemCount: searchResults.length,
                     itemBuilder: (context, index) {
                       MenuItem item = searchResults[index];
@@ -380,7 +399,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
 
   Widget _buildMenuItems() {
     List<MenuItem> items = MenuData.getItemsByCategory(selectedCategory);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
@@ -410,16 +429,18 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
             ),
           ),
           Expanded(
-            child: items.isEmpty 
-            ? Center(child: Text('No items in this category', 
-                style: TextStyle(color: Colors.grey[600], fontSize: 16)))
-            : ListView.builder(
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  MenuItem item = items[index];
-                  return _buildMenuItem(item);
-                },
-              ),
+            child: items.isEmpty
+                ? Center(
+                    child: Text('No items in this category',
+                        style:
+                            TextStyle(color: Colors.grey[600], fontSize: 16)))
+                : ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      MenuItem item = items[index];
+                      return _buildMenuItem(item);
+                    },
+                  ),
           ),
         ],
       ),
@@ -432,17 +453,17 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
       if (!highlightSearch || lastSearchQuery.isEmpty) {
         return Text(text, style: style);
       }
-      
+
       final searchLower = lastSearchQuery.toLowerCase();
       final textLower = text.toLowerCase();
-      
+
       if (!textLower.contains(searchLower)) {
         return Text(text, style: style);
       }
-      
+
       final startIndex = textLower.indexOf(searchLower);
       final endIndex = startIndex + searchLower.length;
-      
+
       return RichText(
         text: TextSpan(
           style: style ?? const TextStyle(color: Colors.black),
@@ -460,7 +481,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
         ),
       );
     }
-    
+
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
@@ -493,7 +514,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    
+
                     // Category (always shown in search results)
                     if (showSearch || highlightSearch) ...[
                       const SizedBox(height: 2),
@@ -506,7 +527,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                         ),
                       ),
                     ],
-                    
+
                     // Description if available
                     if (item.description != null) ...[
                       const SizedBox(height: 4),
@@ -518,9 +539,9 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                         ),
                       ),
                     ],
-                    
+
                     const SizedBox(height: 4),
-                    
+
                     // Price - Show takeaway price
                     Row(
                       children: [
@@ -532,7 +553,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                             color: Colors.orange[700],
                           ),
                         ),
-                        if (item.takeawayPrice != null && item.takeawayPrice != item.price) ...[
+                        if (item.takeawayPrice != null &&
+                            item.takeawayPrice != item.price) ...[
                           const SizedBox(width: 4),
                           Text(
                             '(Takeaway)',
@@ -548,7 +570,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   ],
                 ),
               ),
-              
+
               // Add button
               Container(
                 decoration: BoxDecoration(
@@ -577,7 +599,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
         if (orderProvider.orderItems.isEmpty) {
           return const SizedBox.shrink(); // No footer if cart is empty
         }
-        
+
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -616,7 +638,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   ],
                 ),
               ),
-              
+
               // View order button
               ElevatedButton(
                 onPressed: () {
@@ -627,7 +649,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange[600],
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 child: const Text(
                   'View Order',
@@ -674,7 +697,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Order summary
                 Card(
                   child: Padding(
@@ -698,16 +721,19 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                               children: [
                                 Text(
                                   '${item.quantity}x',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         item.menuItem.name,
-                                        style: const TextStyle(fontWeight: FontWeight.w500),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w500),
                                       ),
                                       if (item.specialInstructions != null)
                                         Text(
@@ -723,7 +749,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                                 ),
                                 Text(
                                   '£${item.totalPrice.toStringAsFixed(2)}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.close, size: 16),
@@ -731,8 +758,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                                   constraints: const BoxConstraints(),
                                   onPressed: () {
                                     orderProvider.removeItem(
-                                      orderProvider.orderItems.indexOf(item)
-                                    );
+                                        orderProvider.orderItems.indexOf(item));
                                   },
                                 ),
                               ],
@@ -744,7 +770,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text('Subtotal:'),
-                            Text('£${orderProvider.subtotal.toStringAsFixed(2)}'),
+                            Text(
+                                '£${orderProvider.subtotal.toStringAsFixed(2)}'),
                           ],
                         ),
                         if (orderProvider.deliveryCharge > 0) ...[
@@ -753,7 +780,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text('Delivery:'),
-                              Text('£${orderProvider.deliveryCharge.toStringAsFixed(2)}'),
+                              Text(
+                                  '£${orderProvider.deliveryCharge.toStringAsFixed(2)}'),
                             ],
                           ),
                         ],
@@ -783,7 +811,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Collection/Delivery Toggle
                 const Text(
                   'Order Type:',
@@ -832,7 +860,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Customer Name
                 TextFormField(
                   decoration: const InputDecoration(
@@ -843,7 +871,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     orderProvider.updateCustomerInfo(name: value);
                   },
                 ),
-                
+
                 if (orderProvider.customerInfo.isDelivery) ...[
                   const SizedBox(height: 16),
                   TextFormField(
@@ -867,7 +895,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     },
                   ),
                 ],
-                
+
                 const SizedBox(height: 16),
                 TextFormField(
                   decoration: const InputDecoration(
@@ -879,14 +907,32 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     orderProvider.updateCustomerInfo(phoneNumber: value);
                   },
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Payment Method
-                const Text('Payment Method:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const Text('Payment Method:',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 Row(
                   children: [
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('None'),
+                        selected: orderProvider.paymentMethod == 'none',
+                        onSelected: (selected) {
+                          if (selected) orderProvider.setPaymentMethod('none');
+                        },
+                        labelStyle: TextStyle(
+                          color: orderProvider.paymentMethod == 'none'
+                              ? Colors.white
+                              : Colors.black,
+                        ),
+                        selectedColor: Colors.orange[600],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: ChoiceChip(
                         label: const Text('Cash'),
@@ -920,31 +966,35 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Submit Button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: _canProceed(orderProvider) ? () async {
-                      if (mounted) {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const OrderSummaryScreen(),
-                          ),
-                        );
-                      }
-                    } : null,
+                    onPressed: _canProceed(orderProvider)
+                        ? () async {
+                            if (mounted) {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const OrderSummaryScreen(),
+                                ),
+                              );
+                            }
+                          }
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange[600],
                       foregroundColor: Colors.white,
                     ),
                     child: const Text(
                       'Review Order',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -960,13 +1010,14 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   bool _canProceed(OrderProvider orderProvider) {
     bool hasName = orderProvider.customerInfo.name?.isNotEmpty == true;
     bool hasPhone = orderProvider.customerInfo.phoneNumber?.isNotEmpty == true;
-    
+
     if (orderProvider.customerInfo.isDelivery) {
       bool hasAddress = orderProvider.customerInfo.address?.isNotEmpty == true;
-      bool hasPostcode = orderProvider.customerInfo.postcode?.isNotEmpty == true;
+      bool hasPostcode =
+          orderProvider.customerInfo.postcode?.isNotEmpty == true;
       return hasName && hasAddress && hasPostcode && hasPhone;
     }
-    
+
     return hasName && hasPhone;
   }
 }

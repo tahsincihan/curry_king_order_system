@@ -10,13 +10,13 @@ class SalesService {
   // Initialize Hive and open the sales box
   static Future<void> initialize() async {
     await Hive.initFlutter();
-    
+
     // Register adapters (manual adapters included in sales_model.dart)
     Hive.registerAdapter(DailySalesAdapter());
     Hive.registerAdapter(SaleTransactionAdapter());
-    
+
     _salesBox = await Hive.openBox<DailySales>(_salesBoxName);
-    
+
     // Clean up old data on initialization
     await _cleanupOldData();
   }
@@ -28,20 +28,29 @@ class SalesService {
 
   // Get yesterday's date in yyyy-MM-dd format
   static String _getYesterdayKey() {
-    return DateFormat('yyyy-MM-dd').format(
-      DateTime.now().subtract(const Duration(days: 1))
-    );
+    return DateFormat('yyyy-MM-dd')
+        .format(DateTime.now().subtract(const Duration(days: 1)));
   }
 
   // Add a sale transaction
   static Future<void> addSale(Order order) async {
     final today = _getTodayKey();
-    
+
     // Get or create today's sales record
     DailySales? todaySales = _salesBox.get(today);
     if (todaySales == null) {
       todaySales = DailySales(date: today, transactions: []);
     }
+
+    // --- CONVERT ORDER ITEMS TO A STORABLE FORMAT ---
+    final storableItems = order.items.map((item) {
+      return {
+        'name': item.menuItem.name,
+        'quantity': item.quantity,
+        'price': item.menuItem.price, // Price per item at time of sale
+        'specialInstructions': item.specialInstructions,
+      };
+    }).toList();
 
     // Create transaction record
     final transaction = SaleTransaction(
@@ -54,11 +63,12 @@ class SalesService {
       itemCount: order.totalItems,
       customerName: order.customerInfo.name,
       tableNumber: order.tableNumber,
+      items: storableItems, // --- SAVE THE ITEMS ---
     );
 
     // Add transaction to today's sales
     todaySales.addTransaction(transaction);
-    
+
     // Save to Hive
     await _salesBox.put(today, todaySales);
   }
@@ -73,7 +83,7 @@ class SalesService {
     return _salesBox.get(_getYesterdayKey());
   }
 
-  // Get all available sales data (max 2 days)
+  // Get all available sales data
   static List<DailySales> getAllSales() {
     return _salesBox.values.toList()
       ..sort((a, b) => b.date.compareTo(a.date)); // Most recent first
@@ -83,26 +93,26 @@ class SalesService {
   static Map<String, double> getSalesSummary() {
     final today = getTodaySales();
     final yesterday = getYesterdaySales();
-    
+
     double totalCash = 0.0;
     double totalCard = 0.0;
     double totalDelivery = 0.0;
     int totalOrders = 0;
-    
+
     if (today != null) {
       totalCash += today.cashSales;
       totalCard += today.cardSales;
       totalDelivery += today.deliveryCharges;
       totalOrders += today.totalOrders;
     }
-    
+
     if (yesterday != null) {
       totalCash += yesterday.cashSales;
       totalCard += yesterday.cardSales;
       totalDelivery += yesterday.deliveryCharges;
       totalOrders += yesterday.totalOrders;
     }
-    
+
     return {
       'totalSales': totalCash + totalCard,
       'cashSales': totalCash,
@@ -112,17 +122,16 @@ class SalesService {
     };
   }
 
-  // Clean up data older than 2 days
+  // --- UPDATED CLEANUP LOGIC ---
+  // Clean up data to keep only the current day's records.
   static Future<void> _cleanupOldData() async {
-    final cutoffDate = DateTime.now().subtract(const Duration(days: 2));
-    final cutoffKey = DateFormat('yyyy-MM-dd').format(cutoffDate);
-    
-    // Get all keys that are older than 2 days
-    final keysToDelete = _salesBox.keys
-        .where((key) => key.toString().compareTo(cutoffKey) < 0)
-        .toList();
-    
-    // Delete old records
+    final todayKey = _getTodayKey();
+
+    // Find all keys that are NOT today's key.
+    final keysToDelete =
+        _salesBox.keys.where((key) => key.toString() != todayKey).toList();
+
+    // Delete all records except today's.
     for (final key in keysToDelete) {
       await _salesBox.delete(key);
     }
@@ -139,29 +148,33 @@ class SalesService {
     return salesData?.transactions ?? [];
   }
 
-  // Export sales data (for debugging or backup)
+  // Export sales data
   static Map<String, dynamic> exportSalesData() {
     final allSales = getAllSales();
     return {
       'exportDate': DateTime.now().toIso8601String(),
-      'sales': allSales.map((sales) => {
-        'date': sales.date,
-        'cashSales': sales.cashSales,
-        'cardSales': sales.cardSales,
-        'totalOrders': sales.totalOrders,
-        'deliveryCharges': sales.deliveryCharges,
-        'transactions': sales.transactions.map((t) => {
-          'orderId': t.orderId,
-          'timestamp': t.timestamp.toIso8601String(),
-          'amount': t.amount,
-          'paymentMethod': t.paymentMethod,
-          'orderType': t.orderType,
-          'deliveryCharge': t.deliveryCharge,
-          'itemCount': t.itemCount,
-          'customerName': t.customerName,
-          'tableNumber': t.tableNumber,
-        }).toList(),
-      }).toList(),
+      'sales': allSales
+          .map((sales) => {
+                'date': sales.date,
+                'cashSales': sales.cashSales,
+                'cardSales': sales.cardSales,
+                'totalOrders': sales.totalOrders,
+                'deliveryCharges': sales.deliveryCharges,
+                'transactions': sales.transactions
+                    .map((t) => {
+                          'orderId': t.orderId,
+                          'timestamp': t.timestamp.toIso8601String(),
+                          'amount': t.amount,
+                          'paymentMethod': t.paymentMethod,
+                          'orderType': t.orderType,
+                          'deliveryCharge': t.deliveryCharge,
+                          'itemCount': t.itemCount,
+                          'customerName': t.customerName,
+                          'tableNumber': t.tableNumber,
+                        })
+                    .toList(),
+              })
+          .toList(),
     };
   }
 

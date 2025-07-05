@@ -15,12 +15,18 @@ class SalesProvider extends ChangeNotifier {
   List<SaleTransaction> get recentTransactions => _recentTransactions;
   bool get isLoading => _isLoading;
 
+  // --- NEW METHOD TO FIX THE ERROR ---
+  List<DailySales> getAllSales() {
+    return SalesService.getAllSales();
+  }
+  // --- END OF NEW METHOD ---
+
   // Computed properties
   double get todayTotal => _todaySales?.totalSales ?? 0.0;
   double get todayCash => _todaySales?.cashSales ?? 0.0;
   double get todayCard => _todaySales?.cardSales ?? 0.0;
   int get todayOrders => _todaySales?.totalOrders ?? 0;
-  
+
   double get yesterdayTotal => _yesterdaySales?.totalSales ?? 0.0;
   double get yesterdayCash => _yesterdaySales?.cashSales ?? 0.0;
   double get yesterdayCard => _yesterdaySales?.cardSales ?? 0.0;
@@ -35,14 +41,14 @@ class SalesProvider extends ChangeNotifier {
   Future<void> initialize() async {
     _isLoading = true;
     notifyListeners();
-    
+
     try {
       await SalesService.initialize();
       await loadSalesData();
     } catch (e) {
       debugPrint('Error initializing sales provider: $e');
     }
-    
+
     _isLoading = false;
     notifyListeners();
   }
@@ -52,10 +58,10 @@ class SalesProvider extends ChangeNotifier {
     try {
       _todaySales = SalesService.getTodaySales();
       _yesterdaySales = SalesService.getYesterdaySales();
-      
+
       // Load recent transactions (today's transactions)
       _recentTransactions = _todaySales?.transactions ?? [];
-      
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading sales data: $e');
@@ -101,7 +107,7 @@ class SalesProvider extends ChangeNotifier {
   Map<String, double> getPaymentMethodPercentages() {
     final total = twoDayTotal;
     if (total == 0) return {'cash': 0.0, 'card': 0.0};
-    
+
     return {
       'cash': (twoDayCash / total) * 100,
       'card': (twoDayCard / total) * 100,
@@ -111,14 +117,14 @@ class SalesProvider extends ChangeNotifier {
   // Get hourly breakdown for today
   Map<int, double> getTodayHourlyBreakdown() {
     if (_todaySales == null) return {};
-    
+
     Map<int, double> hourlyData = {};
-    
+
     for (final transaction in _todaySales!.transactions) {
       final hour = transaction.timestamp.hour;
       hourlyData[hour] = (hourlyData[hour] ?? 0.0) + transaction.amount;
     }
-    
+
     return hourlyData;
   }
 
