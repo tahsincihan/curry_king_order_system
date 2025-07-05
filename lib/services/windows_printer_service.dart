@@ -59,252 +59,203 @@ class WindowsPrinterService {
     }
   }
 
-  // **UPDATED PDF GENERATION LOGIC**
+  // **UPDATED COMPACT PDF GENERATION MATCHING THE RECEIPT FORMAT**
   static Future<Uint8List> _generateReceiptPDF(Order order) async {
     final pdf = pw.Document();
+    final orderId = order.id.substring(order.id.length - 5);
 
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.roll80,
-        margin: const pw.EdgeInsets.all(8),
+        margin: const pw.EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Header
+              // Compact Header
               pw.Center(
                 child: pw.Column(
                   children: [
                     pw.Text(
                       'CURRY KING',
                       style: pw.TextStyle(
-                        fontSize: 24,
+                        fontSize: 16,
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    // "INDIAN CUISINE" REMOVED
-                    pw.SizedBox(height: 8),
+                    pw.SizedBox(height: 2),
                     pw.Container(
                       width: double.infinity,
-                      height: 1,
+                      height: 0.5,
                       color: PdfColors.black,
                     ),
-                    pw.SizedBox(height: 8),
                   ],
                 ),
               ),
 
-              // Order Info
+              pw.SizedBox(height: 3),
+
+              // Order info
               pw.Text(
-                order.orderType == 'takeaway'
-                    ? 'TAKEAWAY ORDER'
-                    : 'DINE IN ORDER',
-                style: pw.TextStyle(
-                  fontSize: 16,
-                  fontWeight: pw.FontWeight.bold,
-                ),
+                'Order #$orderId',
+                style:
+                    pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
               ),
-              pw.Text('Date: ${_formatDateTime(order.orderTime)}'),
-              pw.SizedBox(height: 8),
+              pw.Text(
+                'Date: ${_formatDateTime(order.orderTime)}',
+                style: const pw.TextStyle(fontSize: 9),
+              ),
 
-              // Customer/Table Info
-              if (order.orderType == 'takeaway') ...[
-                pw.Text(
-                  'CUSTOMER DETAILS',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                ),
-                pw.Text('Name: ${order.customerInfo.name ?? 'N/A'}'),
-                if (order.customerInfo.isDelivery) ...[
-                  pw.Text('Type: DELIVERY'),
-                  pw.Text('Address: ${order.customerInfo.address ?? 'N/A'}'),
-                  pw.Text('Postcode: ${order.customerInfo.postcode ?? 'N/A'}'),
-                  pw.Text('Phone: ${order.customerInfo.phoneNumber ?? 'N/A'}'),
-                ] else ...[
-                  pw.Text('Type: COLLECTION'),
-                  if (order.customerInfo.phoneNumber?.isNotEmpty == true)
-                    pw.Text('Phone: ${order.customerInfo.phoneNumber}'),
-                ],
-              ] else ...[
-                pw.Text('Table: ${order.tableNumber ?? 'N/A'}'),
-              ],
-
-              pw.SizedBox(height: 8),
+              pw.SizedBox(height: 2),
               pw.Container(
-                  width: double.infinity, height: 1, color: PdfColors.black),
-              pw.SizedBox(height: 8),
+                  width: double.infinity, height: 0.5, color: PdfColors.black),
+              pw.SizedBox(height: 3),
 
-              // Order Items
+              // ORDER ITEMS header
               pw.Text(
                 'ORDER ITEMS',
-                style: pw.TextStyle(
-                  fontSize: 14,
-                  fontWeight: pw.FontWeight.bold,
-                ),
+                style:
+                    pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
               ),
-              pw.SizedBox(height: 4),
 
+              // Compact item list matching the receipt format
               ...order.items.map((item) {
-                String mainItemName = item.menuItem.name;
-                String? riceModifier;
-
-                if (mainItemName.contains(' with ')) {
-                  var parts = mainItemName.split(' with ');
-                  mainItemName = parts[0];
-                  riceModifier = parts.length > 1 ? parts[1] : null;
-                }
-
-                return pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Expanded(
-                          child: pw.Text(
-                            '${item.quantity}x $mainItemName',
-                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                          ),
-                        ),
-                        pw.Text(
-                          '£${item.totalPrice.toStringAsFixed(2)}',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    if (riceModifier != null)
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.only(left: 16, top: 2),
-                        child: pw.Text(
-                          '+ $riceModifier',
-                          style: const pw.TextStyle(
-                            fontSize: 10,
-                            color: PdfColors.grey700,
-                          ),
-                        ),
-                      ),
-                    if (item.specialInstructions?.isNotEmpty == true)
-                      pw.Padding(
-                          padding: const pw.EdgeInsets.only(left: 16, top: 4),
-                          child: pw.Container(
-                            padding: const pw.EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: pw.BoxDecoration(
-                              color: PdfColors.yellow50,
-                              borderRadius: const pw.BorderRadius.all(
-                                  pw.Radius.circular(4)),
-                            ),
+                return pw.Container(
+                  margin: const pw.EdgeInsets.symmetric(vertical: 1),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Expanded(
+                            flex: 3,
                             child: pw.Text(
-                              'Note: ${item.specialInstructions}',
-                              style: pw.TextStyle(
-                                fontSize: 10,
-                                fontStyle: pw.FontStyle.italic,
-                                fontWeight: pw.FontWeight.bold,
-                                color: PdfColors.grey800,
-                              ),
+                              '${item.quantity}x ${item.menuItem.name}',
+                              style: const pw.TextStyle(fontSize: 9),
+                              maxLines: 2,
+                              overflow: pw.TextOverflow.visible,
                             ),
-                          )),
-                    pw.SizedBox(height: 8),
-                  ],
+                          ),
+                          pw.SizedBox(width: 4),
+                          pw.Text(
+                            '£${item.totalPrice.toStringAsFixed(2)}',
+                            style: const pw.TextStyle(fontSize: 9),
+                          ),
+                        ],
+                      ),
+                      if (item.specialInstructions?.isNotEmpty == true)
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.only(left: 6, top: 1),
+                          child: pw.Text(
+                            'Note: ${item.specialInstructions}',
+                            style: const pw.TextStyle(
+                              fontSize: 7,
+                              color: PdfColors.grey600,
+                            ),
+                            maxLines: 2,
+                            overflow: pw.TextOverflow.visible,
+                          ),
+                        ),
+                    ],
+                  ),
                 );
               }).toList(),
 
-              pw.SizedBox(height: 8),
+              pw.SizedBox(height: 3),
               pw.Container(
-                  width: double.infinity, height: 1, color: PdfColors.black),
-              pw.SizedBox(height: 8),
+                  width: double.infinity, height: 0.5, color: PdfColors.black),
+              pw.SizedBox(height: 2),
 
-              // Totals
+              // Compact totals
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Subtotal:'),
-                  pw.Text('£${order.subtotal.toStringAsFixed(2)}'),
+                  pw.Text('Subtotal:', style: const pw.TextStyle(fontSize: 9)),
+                  pw.Text('£${order.subtotal.toStringAsFixed(2)}',
+                      style: const pw.TextStyle(fontSize: 9)),
                 ],
               ),
-
-              if (order.discountAmount > 0) ...[
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('Discount (${order.discountReason}):'),
-                    pw.Text(
-                      '-£${order.discountAmount.toStringAsFixed(2)}',
-                      style: pw.TextStyle(color: PdfColors.red),
-                    ),
-                  ],
-                ),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('Discounted Subtotal:'),
-                    pw.Text(
-                        '£${order.subtotalAfterDiscount.toStringAsFixed(2)}'),
-                  ],
-                ),
-              ],
-
               if (order.deliveryCharge > 0)
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Delivery:'),
-                    pw.Text('£${order.deliveryCharge.toStringAsFixed(2)}'),
+                    pw.Text('Delivery:',
+                        style: const pw.TextStyle(fontSize: 9)),
+                    pw.Text('£${order.deliveryCharge.toStringAsFixed(2)}',
+                        style: const pw.TextStyle(fontSize: 9)),
                   ],
                 ),
 
+              pw.SizedBox(height: 2),
               pw.Container(
-                  width: double.infinity, height: 1, color: PdfColors.black),
-              pw.SizedBox(height: 4),
+                  width: double.infinity, height: 0.5, color: PdfColors.black),
+              pw.SizedBox(height: 2),
 
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
                     'TOTAL:',
-                    // FONT SIZE REDUCED
                     style: pw.TextStyle(
-                      fontSize: 16,
+                      fontSize: 12,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
                   pw.Text(
                     '£${order.total.toStringAsFixed(2)}',
-                    // FONT SIZE REDUCED
                     style: pw.TextStyle(
-                      fontSize: 16,
+                      fontSize: 12,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
                 ],
               ),
 
-              pw.SizedBox(height: 8),
-              pw.Center(
-                child: pw.Text(
-                  'Payment: ${order.paymentMethod.toUpperCase()}',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                ),
-              ),
-
-              pw.SizedBox(height: 16),
+              pw.SizedBox(height: 3),
               pw.Container(
-                  width: double.infinity, height: 1, color: PdfColors.black),
-              pw.SizedBox(height: 8),
+                  width: double.infinity, height: 0.5, color: PdfColors.black),
+              pw.SizedBox(height: 3),
 
-              // Footer
-              pw.Center(
-                child: pw.Column(
-                  children: [
-                    pw.Text(
-                      'Thank you for your order!',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                    pw.SizedBox(height: 4),
-                    // "CURRY KING - INDIAN CUISINE" REMOVED FROM FOOTER
-                  ],
+              // Compact customer details matching the receipt format
+              if (order.orderType == 'takeaway') ...[
+                pw.Text(
+                  'CUSTOMER DETAILS',
+                  style: pw.TextStyle(
+                      fontSize: 10, fontWeight: pw.FontWeight.bold),
                 ),
-              ),
+                pw.Text('Name: ${order.customerInfo.name ?? 'N/A'}',
+                    style: const pw.TextStyle(fontSize: 9)),
+                if (order.customerInfo.isDelivery) ...[
+                  pw.Text('Type: DELIVERY',
+                      style: pw.TextStyle(
+                          fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('Address: ${order.customerInfo.address ?? 'N/A'}',
+                      style: const pw.TextStyle(fontSize: 8),
+                      maxLines: 2,
+                      overflow: pw.TextOverflow.visible),
+                  pw.Text('Postcode: ${order.customerInfo.postcode ?? 'N/A'}',
+                      style: const pw.TextStyle(fontSize: 8)),
+                  pw.Text('Phone: ${order.customerInfo.phoneNumber ?? 'N/A'}',
+                      style: const pw.TextStyle(fontSize: 8)),
+                  pw.Text(
+                      'Status: ${order.paymentMethod == 'none' ? 'Paid' : order.paymentMethod.toUpperCase()}',
+                      style: pw.TextStyle(
+                          fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                ] else ...[
+                  pw.Text('Type: COLLECTION',
+                      style: pw.TextStyle(
+                          fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                  if (order.customerInfo.phoneNumber?.isNotEmpty == true)
+                    pw.Text('Phone: ${order.customerInfo.phoneNumber}',
+                        style: const pw.TextStyle(fontSize: 8)),
+                ],
+              ] else ...[
+                pw.Text('Table Number: ${order.tableNumber ?? 'N/A'}',
+                    style: pw.TextStyle(
+                        fontSize: 11, fontWeight: pw.FontWeight.bold)),
+              ],
             ],
           );
         },
@@ -314,7 +265,7 @@ class WindowsPrinterService {
     return pdf.save();
   }
 
-  // Test print function
+  // Test print function with compact layout
   static Future<void> testPrint() async {
     try {
       final pdf = pw.Document();
@@ -322,7 +273,7 @@ class WindowsPrinterService {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.roll80,
-          margin: const pw.EdgeInsets.all(8),
+          margin: const pw.EdgeInsets.symmetric(horizontal: 2, vertical: 4),
           build: (pw.Context context) {
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -330,29 +281,36 @@ class WindowsPrinterService {
                 pw.Text(
                   'CURRY KING',
                   style: pw.TextStyle(
-                    fontSize: 24,
+                    fontSize: 16,
                     fontWeight: pw.FontWeight.bold,
                   ),
                 ),
-                pw.SizedBox(height: 16),
+                pw.SizedBox(height: 3),
                 pw.Container(
-                    width: double.infinity, height: 1, color: PdfColors.black),
-                pw.SizedBox(height: 16),
+                    width: double.infinity,
+                    height: 0.5,
+                    color: PdfColors.black),
+                pw.SizedBox(height: 6),
                 pw.Text(
                   'PRINTER TEST',
                   style: pw.TextStyle(
-                    fontSize: 18,
+                    fontSize: 12,
                     fontWeight: pw.FontWeight.bold,
                   ),
                 ),
-                pw.SizedBox(height: 8),
-                pw.Text('This is a test print.'),
-                pw.Text('Date: ${DateTime.now().toString().substring(0, 19)}'),
-                pw.SizedBox(height: 16),
-                pw.Text('Test completed successfully!'),
-                pw.SizedBox(height: 16),
+                pw.SizedBox(height: 3),
+                pw.Text('This is a test print.',
+                    style: const pw.TextStyle(fontSize: 9)),
+                pw.Text('Date: ${DateTime.now().toString().substring(0, 19)}',
+                    style: const pw.TextStyle(fontSize: 9)),
+                pw.SizedBox(height: 6),
+                pw.Text('Test completed successfully!',
+                    style: const pw.TextStyle(fontSize: 9)),
+                pw.SizedBox(height: 6),
                 pw.Container(
-                    width: double.infinity, height: 1, color: PdfColors.black),
+                    width: double.infinity,
+                    height: 0.5,
+                    color: PdfColors.black),
               ],
             );
           },
@@ -384,6 +342,69 @@ class WindowsPrinterService {
 
   // Show printer selection dialog
   static Future<void> showPrinterSelectionDialog(BuildContext context) async {
-    // This function remains the same
+    List<Printer> printers = await getAvailablePrinters();
+
+    if (printers.isEmpty) {
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('No Printers Found'),
+              content: const Text(
+                  'No printers were found. Please make sure your printer is connected and try again.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+      return;
+    }
+
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Select Printer'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: printers.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(printers[index].name),
+                    subtitle: Text(printers[index].url),
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      setDefaultPrinter(printers[index].url);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(
+                                  'Selected printer: ${printers[index].name}')),
+                        );
+                      }
+                    },
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 }

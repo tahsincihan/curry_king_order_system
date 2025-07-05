@@ -153,7 +153,7 @@ class UnifiedPrinterService {
     );
   }
 
-  // Print via Bluetooth with new layout
+  // Print via Bluetooth with updated compact layout
   static Future<void> _printViaBluetooth(Order order) async {
     bool isConnected = await bluetoothPrint.isConnected ?? false;
     if (!isConnected) {
@@ -165,194 +165,193 @@ class UnifiedPrinterService {
     await bluetoothPrint.printReceipt(config, receiptLines);
   }
 
-  // **UPDATED PDF GENERATION LOGIC**
+  // **UPDATED COMPACT PDF GENERATION**
   static Future<Uint8List> _generateReceiptPDF(Order order) async {
     final pdf = pw.Document();
-    final orderId = 'Order #${order.id.substring(order.id.length - 5)}';
+    final orderId = order.id.substring(order.id.length - 5);
 
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.roll80,
-        margin: const pw.EdgeInsets.all(8),
+        margin: const pw.EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Header
+              // Compact Header
               pw.Center(
                 child: pw.Column(
                   children: [
                     pw.Text(
                       'CURRY KING',
                       style: pw.TextStyle(
-                        fontSize: 24,
+                        fontSize: 18,
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    pw.SizedBox(height: 8),
-                    pw.Divider(),
+                    pw.SizedBox(height: 2),
+                    pw.Container(
+                      width: double.infinity,
+                      height: 0.5,
+                      color: PdfColors.black,
+                    ),
                   ],
                 ),
               ),
 
-              // Order Number and Date
-              pw.Text(
-                orderId,
-                style: pw.TextStyle(
-                  fontSize: 16,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.Text('Date: ${_formatDateTime(order.orderTime)}'),
-              pw.Divider(),
-
-              // Order Items
-              pw.Text(
-                'ORDER ITEMS',
-                style: pw.TextStyle(
-                  fontSize: 14,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
               pw.SizedBox(height: 4),
 
+              // Order info in one line
+              pw.Text(
+                'Order #$orderId',
+                style:
+                    pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+              ),
+              pw.Text(
+                'Date: ${_formatDateTime(order.orderTime)}',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+
+              pw.SizedBox(height: 2),
+              pw.Container(
+                  width: double.infinity, height: 0.5, color: PdfColors.black),
+              pw.SizedBox(height: 4),
+
+              // ORDER ITEMS header
+              pw.Text(
+                'ORDER ITEMS',
+                style:
+                    pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+              ),
+
+              // Compact item list
               ...order.items.map((item) {
-                String mainItemName = item.menuItem.name;
-                String? riceModifier;
-
-                // --- NEW LOGIC FOR RICE MODIFIER ---
-                if (mainItemName.contains(' with ')) {
-                  var parts = mainItemName.split(' with ');
-                  mainItemName = parts[0];
-                  riceModifier = parts.length > 1 ? parts[1] : null;
-                }
-
-                return pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Expanded(
-                          child: pw.Text(
-                            '${item.quantity}x $mainItemName',
-                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                return pw.Container(
+                  margin: const pw.EdgeInsets.symmetric(vertical: 1),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Expanded(
+                            child: pw.Text(
+                              '${item.quantity}x ${item.menuItem.name}',
+                              style: const pw.TextStyle(fontSize: 10),
+                            ),
                           ),
-                        ),
-                        pw.Text(
-                          '£${item.totalPrice.toStringAsFixed(2)}',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    // --- UPDATED RICE MODIFIER DISPLAY ---
-                    if (riceModifier != null)
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.only(left: 16, top: 2),
-                        child: pw.Text(
-                          '+ $riceModifier',
-                          style: const pw.TextStyle(
-                            fontSize: 10,
-                            color: PdfColors.grey700,
-                          ), // Not bold
-                        ),
+                          pw.Text(
+                            '£${item.totalPrice.toStringAsFixed(2)}',
+                            style: const pw.TextStyle(fontSize: 10),
+                          ),
+                        ],
                       ),
-                    if (item.specialInstructions?.isNotEmpty == true)
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.only(left: 16, top: 4),
-                        child: pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: pw.BoxDecoration(
-                            color: PdfColors.yellow50,
-                            borderRadius: const pw.BorderRadius.all(
-                                pw.Radius.circular(4)),
-                          ),
+                      if (item.specialInstructions?.isNotEmpty == true)
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.only(left: 8, top: 1),
                           child: pw.Text(
                             'Note: ${item.specialInstructions}',
-                            style: pw.TextStyle(
-                              fontSize: 10,
-                              fontStyle: pw.FontStyle.italic,
-                              fontWeight: pw.FontWeight.bold,
-                              color: PdfColors.grey800,
+                            style: const pw.TextStyle(
+                              fontSize: 8,
+                              color: PdfColors.grey600,
                             ),
                           ),
                         ),
-                      ),
-                    pw.SizedBox(height: 8),
-                  ],
+                    ],
+                  ),
                 );
               }).toList(),
 
-              pw.Divider(),
+              pw.SizedBox(height: 4),
+              pw.Container(
+                  width: double.infinity, height: 0.5, color: PdfColors.black),
+              pw.SizedBox(height: 2),
 
-              // Totals
+              // Compact totals
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Subtotal:'),
-                  pw.Text('£${order.subtotal.toStringAsFixed(2)}'),
+                  pw.Text('Subtotal:', style: const pw.TextStyle(fontSize: 10)),
+                  pw.Text('£${order.subtotal.toStringAsFixed(2)}',
+                      style: const pw.TextStyle(fontSize: 10)),
                 ],
               ),
               if (order.deliveryCharge > 0)
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Delivery:'),
-                    pw.Text('£${order.deliveryCharge.toStringAsFixed(2)}'),
+                    pw.Text('Delivery:',
+                        style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('£${order.deliveryCharge.toStringAsFixed(2)}',
+                        style: const pw.TextStyle(fontSize: 10)),
                   ],
                 ),
-              pw.Divider(),
+
+              pw.SizedBox(height: 2),
+              pw.Container(
+                  width: double.infinity, height: 0.5, color: PdfColors.black),
+              pw.SizedBox(height: 2),
+
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
                     'TOTAL:',
                     style: pw.TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
                   pw.Text(
                     '£${order.total.toStringAsFixed(2)}',
                     style: pw.TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
                 ],
               ),
 
-              pw.SizedBox(height: 16),
-              pw.Divider(),
+              pw.SizedBox(height: 4),
+              pw.Container(
+                  width: double.infinity, height: 0.5, color: PdfColors.black),
+              pw.SizedBox(height: 4),
 
-              // Customer/Table Info (Moved to bottom)
+              // Compact customer details
               if (order.orderType == 'takeaway') ...[
                 pw.Text(
                   'CUSTOMER DETAILS',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                  style: pw.TextStyle(
+                      fontSize: 11, fontWeight: pw.FontWeight.bold),
                 ),
-                pw.Text('Name: ${order.customerInfo.name ?? 'N/A'}'),
+                pw.Text('Name: ${order.customerInfo.name ?? 'N/A'}',
+                    style: const pw.TextStyle(fontSize: 10)),
                 if (order.customerInfo.isDelivery) ...[
                   pw.Text('Type: DELIVERY',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text('Address: ${order.customerInfo.address ?? 'N/A'}'),
-                  pw.Text('Postcode: ${order.customerInfo.postcode ?? 'N/A'}'),
-                  pw.Text('Phone: ${order.customerInfo.phoneNumber ?? 'N/A'}'),
+                      style: pw.TextStyle(
+                          fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('Address: ${order.customerInfo.address ?? 'N/A'}',
+                      style: const pw.TextStyle(fontSize: 9)),
+                  pw.Text('Postcode: ${order.customerInfo.postcode ?? 'N/A'}',
+                      style: const pw.TextStyle(fontSize: 9)),
+                  pw.Text('Phone: ${order.customerInfo.phoneNumber ?? 'N/A'}',
+                      style: const pw.TextStyle(fontSize: 9)),
                   pw.Text(
-                      'Status: ${order.paymentMethod == 'cash' ? 'Not Paid' : 'Paid'}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      'Status: ${order.paymentMethod == 'none' ? 'Paid' : order.paymentMethod.toUpperCase()}',
+                      style: pw.TextStyle(
+                          fontSize: 10, fontWeight: pw.FontWeight.bold)),
                 ] else ...[
-                  pw.Text('Type: COLLECTION',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Text('Type: DELIVERY',
+                      style: pw.TextStyle(
+                          fontSize: 10, fontWeight: pw.FontWeight.bold)),
                   if (order.customerInfo.phoneNumber?.isNotEmpty == true)
-                    pw.Text('Phone: ${order.customerInfo.phoneNumber}'),
+                    pw.Text('Phone: ${order.customerInfo.phoneNumber}',
+                        style: const pw.TextStyle(fontSize: 9)),
                 ],
               ] else ...[
-                pw.Text('Table: ${order.tableNumber ?? 'N/A'}',
+                pw.Text('Table Number: ${order.tableNumber ?? 'N/A'}',
                     style: pw.TextStyle(
-                        fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                        fontSize: 12, fontWeight: pw.FontWeight.bold)),
               ],
             ],
           );
@@ -363,104 +362,186 @@ class UnifiedPrinterService {
     return pdf.save();
   }
 
-  // **UPDATED: Generate thermal printer friendly text receipt**
+  // **UPDATED COMPACT BLUETOOTH RECEIPT**
   static List<LineText> _generateBluetoothReceipt(Order order) {
     List<LineText> lines = [];
-    final orderId = 'Order #${order.id.substring(order.id.length - 5)}';
+    final orderId = order.id.substring(order.id.length - 5);
 
-    // Header
+    // Compact Header
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
         content: 'CURRY KING',
-        weight: 2,
-        align: LineText.ALIGN_CENTER,
-        linefeed: 1));
-    lines.add(LineText(
-        type: LineText.TYPE_TEXT,
-        content: '================================',
-        align: LineText.ALIGN_CENTER,
-        linefeed: 1));
-
-    // Order Info
-    lines.add(LineText(
-        type: LineText.TYPE_TEXT,
-        content: orderId,
         weight: 1,
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
+
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
-        content: 'Date: ${_formatDateTime(order.orderTime)}',
-        align: LineText.ALIGN_LEFT,
-        linefeed: 1));
-    lines.add(LineText(
-        type: LineText.TYPE_TEXT,
-        content: '--------------------------------',
+        content: '================================',
+        weight: 0,
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
 
-    // Order Items
+    // Order info
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: 'Order #$orderId',
+        weight: 1,
+        align: LineText.ALIGN_LEFT,
+        linefeed: 1));
+
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: 'Date: ${_formatDateTime(order.orderTime)}',
+        weight: 0,
+        align: LineText.ALIGN_LEFT,
+        linefeed: 1));
+
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: '--------------------------------',
+        weight: 0,
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+
+    // ORDER ITEMS
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
         content: 'ORDER ITEMS',
         weight: 1,
-        align: LineText.ALIGN_CENTER,
+        align: LineText.ALIGN_LEFT,
         linefeed: 1));
-    for (var item in order.items) {
-      String mainItemName = item.menuItem.name;
-      String? riceModifier;
 
-      // --- NEW LOGIC FOR RICE MODIFIER ---
-      if (mainItemName.contains(' with ')) {
-        var parts = mainItemName.split(' with ');
-        mainItemName = parts[0];
-        riceModifier = parts.length > 1 ? parts[1] : null;
+    // Compact item listing with better formatting for thermal printers
+    for (var item in order.items) {
+      // Split long item names to fit thermal printer width
+      String itemName = item.menuItem.name;
+      String itemLine = '${item.quantity}x $itemName';
+
+      // For thermal printers, try to keep lines under 32 characters
+      if (itemLine.length > 32) {
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: '${item.quantity}x',
+            weight: 0,
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+
+        // Split long names into multiple lines if needed
+        if (itemName.length > 28) {
+          List<String> words = itemName.split(' ');
+          String currentLine = '';
+
+          for (String word in words) {
+            if ((currentLine + word).length > 28) {
+              if (currentLine.isNotEmpty) {
+                lines.add(LineText(
+                    type: LineText.TYPE_TEXT,
+                    content: '  $currentLine',
+                    weight: 0,
+                    align: LineText.ALIGN_LEFT,
+                    linefeed: 1));
+                currentLine = word;
+              } else {
+                lines.add(LineText(
+                    type: LineText.TYPE_TEXT,
+                    content: '  $word',
+                    weight: 0,
+                    align: LineText.ALIGN_LEFT,
+                    linefeed: 1));
+              }
+            } else {
+              currentLine += (currentLine.isEmpty ? '' : ' ') + word;
+            }
+          }
+          if (currentLine.isNotEmpty) {
+            lines.add(LineText(
+                type: LineText.TYPE_TEXT,
+                content: '  $currentLine',
+                weight: 0,
+                align: LineText.ALIGN_LEFT,
+                linefeed: 1));
+          }
+        } else {
+          lines.add(LineText(
+              type: LineText.TYPE_TEXT,
+              content: '  $itemName',
+              weight: 0,
+              align: LineText.ALIGN_LEFT,
+              linefeed: 1));
+        }
+      } else {
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: itemLine,
+            weight: 0,
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
       }
 
-      lines.add(LineText(
-          type: LineText.TYPE_TEXT,
-          content: '${item.quantity}x $mainItemName',
-          weight: 1,
-          align: LineText.ALIGN_LEFT));
+      // Price on separate line, right aligned
       lines.add(LineText(
           type: LineText.TYPE_TEXT,
           content: '£${item.totalPrice.toStringAsFixed(2)}',
+          weight: 0,
           align: LineText.ALIGN_RIGHT,
           linefeed: 1));
 
-      // --- UPDATED RICE MODIFIER DISPLAY ---
-      if (riceModifier != null) {
-        lines.add(LineText(
-            type: LineText.TYPE_TEXT,
-            content: '  + $riceModifier',
-            weight: 0, // Not bold
-            align: LineText.ALIGN_LEFT,
-            linefeed: 1));
+      if (item.specialInstructions?.isNotEmpty == true) {
+        // Break special instructions into smaller lines
+        String instructions = 'NOTE: ${item.specialInstructions}';
+        if (instructions.length > 32) {
+          List<String> words = instructions.split(' ');
+          String currentLine = '';
+
+          for (String word in words) {
+            if ((currentLine + word).length > 32) {
+              if (currentLine.isNotEmpty) {
+                lines.add(LineText(
+                    type: LineText.TYPE_TEXT,
+                    content: currentLine,
+                    weight: 1,
+                    align: LineText.ALIGN_LEFT,
+                    linefeed: 1));
+                currentLine = word;
+              } else {
+                lines.add(LineText(
+                    type: LineText.TYPE_TEXT,
+                    content: word,
+                    weight: 1,
+                    align: LineText.ALIGN_LEFT,
+                    linefeed: 1));
+              }
+            } else {
+              currentLine += (currentLine.isEmpty ? '' : ' ') + word;
+            }
+          }
+          if (currentLine.isNotEmpty) {
+            lines.add(LineText(
+                type: LineText.TYPE_TEXT,
+                content: currentLine,
+                weight: 1,
+                align: LineText.ALIGN_LEFT,
+                linefeed: 1));
+          }
+        } else {
+          lines.add(LineText(
+              type: LineText.TYPE_TEXT,
+              content: instructions,
+              weight: 1,
+              align: LineText.ALIGN_LEFT,
+              linefeed: 1));
+        }
       }
 
-      if (item.specialInstructions?.isNotEmpty == true) {
-        lines.add(LineText(
-            type: LineText.TYPE_TEXT,
-            content: '********************************',
-            align: LineText.ALIGN_CENTER,
-            linefeed: 1));
-        lines.add(LineText(
-            type: LineText.TYPE_TEXT,
-            content: 'NOTE: ${item.specialInstructions}',
-            weight: 1,
-            align: LineText.ALIGN_LEFT,
-            linefeed: 1));
-        lines.add(LineText(
-            type: LineText.TYPE_TEXT,
-            content: '********************************',
-            align: LineText.ALIGN_CENTER,
-            linefeed: 1));
-      }
+      // Add small space between items
+      lines.add(LineText(type: LineText.TYPE_TEXT, content: '', linefeed: 1));
     }
 
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
         content: '--------------------------------',
+        weight: 0,
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
 
@@ -468,86 +549,180 @@ class UnifiedPrinterService {
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
         content: 'Subtotal: £${order.subtotal.toStringAsFixed(2)}',
+        weight: 0,
         align: LineText.ALIGN_RIGHT,
         linefeed: 1));
+
     if (order.deliveryCharge > 0) {
       lines.add(LineText(
           type: LineText.TYPE_TEXT,
           content: 'Delivery: £${order.deliveryCharge.toStringAsFixed(2)}',
+          weight: 0,
           align: LineText.ALIGN_RIGHT,
           linefeed: 1));
     }
+
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
         content: '--------------------------------',
+        weight: 0,
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
+
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
         content: 'TOTAL: £${order.total.toStringAsFixed(2)}',
-        weight: 2, // Bolder Total
+        weight: 2,
         align: LineText.ALIGN_RIGHT,
         linefeed: 2));
 
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
         content: '--------------------------------',
+        weight: 0,
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
 
-    // Customer Info (Moved to bottom)
+    // Customer details with proper line breaking
     if (order.orderType == 'takeaway') {
       lines.add(LineText(
           type: LineText.TYPE_TEXT,
-          content: 'CUSTOMER: ${order.customerInfo.name ?? 'N/A'}',
+          content: 'CUSTOMER DETAILS',
+          weight: 1,
           align: LineText.ALIGN_LEFT,
           linefeed: 1));
-      if (order.customerInfo.isDelivery) {
+
+      String customerName = order.customerInfo.name ?? 'N/A';
+      if (customerName.length > 25) {
         lines.add(LineText(
             type: LineText.TYPE_TEXT,
-            content: 'TYPE: DELIVERY',
-            weight: 1, // Bold Type
+            content: 'Name:',
+            weight: 0,
             align: LineText.ALIGN_LEFT,
             linefeed: 1));
         lines.add(LineText(
             type: LineText.TYPE_TEXT,
-            content: 'ADDRESS: ${order.customerInfo.address ?? 'N/A'}',
-            align: LineText.ALIGN_LEFT,
-            linefeed: 1));
-        lines.add(LineText(
-            type: LineText.TYPE_TEXT,
-            content: 'POSTCODE: ${order.customerInfo.postcode ?? 'N/A'}',
-            align: LineText.ALIGN_LEFT,
-            linefeed: 1));
-        lines.add(LineText(
-            type: LineText.TYPE_TEXT,
-            content:
-                'STATUS: ${order.paymentMethod == 'cash' ? 'Not Paid' : 'Paid'}',
-            weight: 1, // Bold Status
+            content: customerName,
+            weight: 0,
             align: LineText.ALIGN_LEFT,
             linefeed: 1));
       } else {
         lines.add(LineText(
             type: LineText.TYPE_TEXT,
-            content: 'TYPE: COLLECTION',
-            weight: 1, // Bold Type
+            content: 'Name: $customerName',
+            weight: 0,
             align: LineText.ALIGN_LEFT,
             linefeed: 1));
       }
-      lines.add(LineText(
-          type: LineText.TYPE_TEXT,
-          content: 'PHONE: ${order.customerInfo.phoneNumber ?? 'N/A'}',
-          align: LineText.ALIGN_LEFT,
-          linefeed: 1));
+
+      if (order.customerInfo.isDelivery) {
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: 'Type: DELIVERY',
+            weight: 1,
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+
+        String address = order.customerInfo.address ?? 'N/A';
+        if (address.length > 25) {
+          lines.add(LineText(
+              type: LineText.TYPE_TEXT,
+              content: 'Address:',
+              weight: 0,
+              align: LineText.ALIGN_LEFT,
+              linefeed: 1));
+
+          // Break address into multiple lines
+          List<String> words = address.split(' ');
+          String currentLine = '';
+
+          for (String word in words) {
+            if ((currentLine + word).length > 30) {
+              if (currentLine.isNotEmpty) {
+                lines.add(LineText(
+                    type: LineText.TYPE_TEXT,
+                    content: currentLine,
+                    weight: 0,
+                    align: LineText.ALIGN_LEFT,
+                    linefeed: 1));
+                currentLine = word;
+              } else {
+                lines.add(LineText(
+                    type: LineText.TYPE_TEXT,
+                    content: word,
+                    weight: 0,
+                    align: LineText.ALIGN_LEFT,
+                    linefeed: 1));
+              }
+            } else {
+              currentLine += (currentLine.isEmpty ? '' : ' ') + word;
+            }
+          }
+          if (currentLine.isNotEmpty) {
+            lines.add(LineText(
+                type: LineText.TYPE_TEXT,
+                content: currentLine,
+                weight: 0,
+                align: LineText.ALIGN_LEFT,
+                linefeed: 1));
+          }
+        } else {
+          lines.add(LineText(
+              type: LineText.TYPE_TEXT,
+              content: 'Address: $address',
+              weight: 0,
+              align: LineText.ALIGN_LEFT,
+              linefeed: 1));
+        }
+
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: 'Postcode: ${order.customerInfo.postcode ?? 'N/A'}',
+            weight: 0,
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: 'Phone: ${order.customerInfo.phoneNumber ?? 'N/A'}',
+            weight: 0,
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content:
+                'Status: ${order.paymentMethod == 'none' ? 'Paid' : order.paymentMethod.toUpperCase()}',
+            weight: 1,
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+      } else {
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: 'Type: COLLECTION',
+            weight: 1,
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+
+        if (order.customerInfo.phoneNumber?.isNotEmpty == true) {
+          lines.add(LineText(
+              type: LineText.TYPE_TEXT,
+              content: 'Phone: ${order.customerInfo.phoneNumber}',
+              weight: 0,
+              align: LineText.ALIGN_LEFT,
+              linefeed: 1));
+        }
+      }
     } else {
       lines.add(LineText(
           type: LineText.TYPE_TEXT,
-          content: 'TABLE: ${order.tableNumber ?? 'N/A'}',
-          weight: 2, // Bolder Table
+          content: 'Table: ${order.tableNumber ?? 'N/A'}',
+          weight: 1,
           align: LineText.ALIGN_LEFT,
           linefeed: 1));
     }
 
+    // Add some space at the end
     lines.add(LineText(type: LineText.TYPE_TEXT, content: '', linefeed: 3));
 
     return lines;
