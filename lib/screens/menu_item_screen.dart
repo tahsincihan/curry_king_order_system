@@ -6,7 +6,8 @@ import 'package:provider/provider.dart';
 class MenuItemDetailScreen extends StatefulWidget {
   final MenuItem menuItem;
 
-  const MenuItemDetailScreen({Key? key, required this.menuItem}) : super(key: key);
+  const MenuItemDetailScreen({Key? key, required this.menuItem})
+      : super(key: key);
 
   @override
   _MenuItemDetailScreenState createState() => _MenuItemDetailScreenState();
@@ -17,7 +18,7 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
   String? selectedRice = 'Pilau Rice';
   final TextEditingController noteController = TextEditingController();
   double additionalCost = 0.0;
-  
+
   final List<String> riceOptions = [
     'Pilau Rice',
     'Plain Rice',
@@ -38,28 +39,28 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
 
   void _updateRice(String? rice) {
     if (rice == null) return;
-    
+
     setState(() {
       // Reset additional cost
       additionalCost = 0.0;
-      
+
       // If not default rice (Pilau Rice), add £1
       if (rice != 'Pilau Rice' && rice != 'Plain Rice') {
         additionalCost = 1.0;
       }
-      
+
       selectedRice = rice;
     });
   }
 
   bool _shouldShowRiceSelection() {
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-    
+
     // Don't show rice selection for dine-in orders
     if (orderProvider.orderType == 'dine-in') {
       return false;
     }
-    
+
     // Don't show rice selection for these categories
     List<String> excludedCategories = [
       'Starters',
@@ -69,15 +70,15 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
       'Rice & Accompaniments',
       'English Dishes'
     ];
-    
+
     return !excludedCategories.contains(widget.menuItem.category);
   }
 
   @override
   Widget build(BuildContext context) {
     final orderProvider = Provider.of<OrderProvider>(context);
-    final displayPrice = orderProvider.orderType == 'takeaway' 
-        ? widget.menuItem.getTakeawayPrice() 
+    final displayPrice = orderProvider.orderType == 'takeaway'
+        ? widget.menuItem.getTakeawayPrice()
         : widget.menuItem.getDineInPrice();
 
     return Scaffold(
@@ -108,7 +109,7 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                   color: Colors.orange[700],
                 ),
               ),
-              
+
               // Description if available
               if (widget.menuItem.description != null) ...[
                 const SizedBox(height: 16),
@@ -120,9 +121,9 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                   ),
                 ),
               ],
-              
+
               const SizedBox(height: 24),
-              
+
               // Quantity selector
               Row(
                 children: [
@@ -136,11 +137,13 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                   const SizedBox(width: 16),
                   IconButton(
                     icon: const Icon(Icons.remove_circle_outline),
-                    onPressed: quantity > 1 ? () => setState(() => quantity--) : null,
+                    onPressed:
+                        quantity > 1 ? () => setState(() => quantity--) : null,
                   ),
                   Text(
                     '$quantity',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline),
@@ -148,9 +151,9 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Rice selection for takeaway curry dishes only
               if (_shouldShowRiceSelection()) ...[
                 const Text(
@@ -196,7 +199,7 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                 ),
                 const SizedBox(height: 24),
               ],
-              
+
               // Special instructions
               const Text(
                 'Special Instructions:',
@@ -213,13 +216,14 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 maxLines: 3,
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Total price
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -241,9 +245,9 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Add to cart button
               SizedBox(
                 width: double.infinity,
@@ -252,18 +256,18 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                   onPressed: () {
                     // Create a modified menu item with adjusted price if needed
                     MenuItem adjustedItem = MenuItem(
-                      name: selectedRice != null && selectedRice != 'Pilau Rice' && _shouldShowRiceSelection()
-                          ? "${widget.menuItem.name} with $selectedRice"
-                          : widget.menuItem.name,
-                      price: widget.menuItem.price, // Keep original dine-in price
+                      name: widget.menuItem.name,
+                      price:
+                          widget.menuItem.price, // Keep original dine-in price
                       category: widget.menuItem.category,
                       description: widget.menuItem.description,
-                      takeawayPrice: widget.menuItem.takeawayPrice, // Keep original takeaway price
+                      takeawayPrice: widget.menuItem
+                          .takeawayPrice, // Keep original takeaway price
                     );
-                    
+
                     // Adjust the price in the order item based on current order type + rice selection
                     double finalPrice = displayPrice + additionalCost;
-                    
+
                     // Create adjusted item with the final calculated price
                     MenuItem finalItem = MenuItem(
                       name: adjustedItem.name,
@@ -271,20 +275,25 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                       category: adjustedItem.category,
                       description: adjustedItem.description,
                     );
-                    
+
                     // Add to cart
-                    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-                    
+                    final orderProvider =
+                        Provider.of<OrderProvider>(context, listen: false);
+
                     // Create new order item with selected options
                     OrderItem orderItem = OrderItem(
                       menuItem: finalItem,
                       quantity: quantity,
-                      specialInstructions: noteController.text.isNotEmpty ? noteController.text : null,
+                      specialInstructions: noteController.text.isNotEmpty
+                          ? noteController.text
+                          : null,
+                      selectedRice:
+                          _shouldShowRiceSelection() ? selectedRice : null,
                     );
-                    
+
                     // Add custom method to add complete order item
                     orderProvider.addCompleteOrderItem(orderItem);
-                    
+
                     // Show confirmation and go back
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -292,7 +301,7 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                         duration: const Duration(seconds: 1),
                       ),
                     );
-                    
+
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(

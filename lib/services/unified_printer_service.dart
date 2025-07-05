@@ -253,6 +253,17 @@ class UnifiedPrinterService {
                               ),
                             ],
                           ),
+                          if (item.selectedRice != null &&
+                              item.selectedRice != 'Pilau Rice' &&
+                              item.selectedRice != 'Plain Rice')
+                            pw.Padding(
+                              padding:
+                                  const pw.EdgeInsets.only(left: 8, top: 1),
+                              child: pw.Text(
+                                '+ ${item.selectedRice}',
+                                style: const pw.TextStyle(fontSize: 9),
+                              ),
+                            ),
                           if (item.specialInstructions?.isNotEmpty == true)
                             pw.Padding(
                               padding:
@@ -505,6 +516,17 @@ class UnifiedPrinterService {
           weight: 0,
           align: LineText.ALIGN_RIGHT,
           linefeed: 1));
+
+      if (item.selectedRice != null &&
+          item.selectedRice != 'Pilau Rice' &&
+          item.selectedRice != 'Plain Rice') {
+        lines.add(LineText(
+            type: LineText.TYPE_TEXT,
+            content: ' + ${item.selectedRice}',
+            weight: 0,
+            align: LineText.ALIGN_LEFT,
+            linefeed: 1));
+      }
 
       if (item.specialInstructions?.isNotEmpty == true) {
         // Break special instructions into smaller lines

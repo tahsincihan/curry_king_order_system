@@ -29,11 +29,13 @@ class OrderItem {
   final MenuItem menuItem;
   int quantity;
   String? specialInstructions;
+  String? selectedRice;
 
   OrderItem({
     required this.menuItem,
     this.quantity = 1,
     this.specialInstructions,
+    this.selectedRice,
   });
 
   double get totalPrice => menuItem.price * quantity;
