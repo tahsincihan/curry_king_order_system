@@ -63,6 +63,11 @@ class WindowsPrinterService {
   static Future<Uint8List> _generateReceiptPDF(Order order) async {
     final pdf = pw.Document();
     final orderId = order.id.substring(order.id.length - 5);
+    String orderSubtitle = 'DINE-IN ORDER';
+    if (order.orderType == 'takeaway') {
+      orderSubtitle =
+          order.customerInfo.isDelivery ? 'DELIVERY ORDER' : 'COLLECTION ORDER';
+    }
 
     pdf.addPage(
       pw.Page(
@@ -84,6 +89,14 @@ class WindowsPrinterService {
                           'CURRY KING',
                           style: pw.TextStyle(
                             fontSize: 16,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                        pw.SizedBox(height: 1),
+                        pw.Text(
+                          orderSubtitle,
+                          style: pw.TextStyle(
+                            fontSize: 11,
                             fontWeight: pw.FontWeight.bold,
                           ),
                         ),
@@ -152,15 +165,26 @@ class WindowsPrinterService {
                               ),
                             ],
                           ),
+                          if (item.selectedRice != null &&
+                              item.selectedRice != 'Pilau Rice' &&
+                              item.selectedRice != 'Plain Rice')
+                            pw.Padding(
+                              padding:
+                                  const pw.EdgeInsets.only(left: 6, top: 1),
+                              child: pw.Text(
+                                '+ ${item.selectedRice}',
+                                style: const pw.TextStyle(fontSize: 8),
+                              ),
+                            ),
                           if (item.specialInstructions?.isNotEmpty == true)
                             pw.Padding(
                               padding:
                                   const pw.EdgeInsets.only(left: 6, top: 1),
                               child: pw.Text(
-                                'Note: ${item.specialInstructions}',
+                                '(${item.specialInstructions})',
                                 style: const pw.TextStyle(
                                   fontSize: 7,
-                                  color: PdfColors.grey600,
+                                  color: PdfColors.black,
                                 ),
                                 maxLines: 2,
                                 overflow: pw.TextOverflow.visible,

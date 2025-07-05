@@ -169,6 +169,11 @@ class UnifiedPrinterService {
   static Future<Uint8List> _generateReceiptPDF(Order order) async {
     final pdf = pw.Document();
     final orderId = order.id.substring(order.id.length - 5);
+    String orderSubtitle = 'DINE-IN ORDER';
+    if (order.orderType == 'takeaway') {
+      orderSubtitle =
+          order.customerInfo.isDelivery ? 'DELIVERY ORDER' : 'COLLECTION ORDER';
+    }
 
     pdf.addPage(
       pw.Page(
@@ -190,6 +195,14 @@ class UnifiedPrinterService {
                           'CURRY KING',
                           style: pw.TextStyle(
                             fontSize: 18,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                        pw.SizedBox(height: 1),
+                        pw.Text(
+                          orderSubtitle,
+                          style: pw.TextStyle(
+                            fontSize: 12,
                             fontWeight: pw.FontWeight.bold,
                           ),
                         ),
@@ -269,10 +282,10 @@ class UnifiedPrinterService {
                               padding:
                                   const pw.EdgeInsets.only(left: 8, top: 1),
                               child: pw.Text(
-                                'Note: ${item.specialInstructions}',
+                                '(${item.specialInstructions})',
                                 style: const pw.TextStyle(
                                   fontSize: 8,
-                                  color: PdfColors.grey600,
+                                  color: PdfColors.black,
                                 ),
                               ),
                             ),
@@ -369,7 +382,7 @@ class UnifiedPrinterService {
                           style: pw.TextStyle(
                               fontSize: 10, fontWeight: pw.FontWeight.bold)),
                     ] else ...[
-                      pw.Text('Type: DELIVERY',
+                      pw.Text('Type: COLLECTION',
                           style: pw.TextStyle(
                               fontSize: 10, fontWeight: pw.FontWeight.bold)),
                       if (order.customerInfo.phoneNumber?.isNotEmpty == true)
@@ -396,11 +409,22 @@ class UnifiedPrinterService {
   static List<LineText> _generateBluetoothReceipt(Order order) {
     List<LineText> lines = [];
     final orderId = order.id.substring(order.id.length - 5);
+    String orderSubtitle = 'DINE-IN ORDER';
+    if (order.orderType == 'takeaway') {
+      orderSubtitle =
+          order.customerInfo.isDelivery ? 'DELIVERY ORDER' : 'COLLECTION ORDER';
+    }
 
     // Compact Header
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
         content: 'CURRY KING',
+        weight: 1,
+        align: LineText.ALIGN_CENTER,
+        linefeed: 1));
+    lines.add(LineText(
+        type: LineText.TYPE_TEXT,
+        content: orderSubtitle,
         weight: 1,
         align: LineText.ALIGN_CENTER,
         linefeed: 1));
@@ -530,7 +554,7 @@ class UnifiedPrinterService {
 
       if (item.specialInstructions?.isNotEmpty == true) {
         // Break special instructions into smaller lines
-        String instructions = 'NOTE: ${item.specialInstructions}';
+        String instructions = '(${item.specialInstructions})';
         if (instructions.length > 32) {
           List<String> words = instructions.split(' ');
           String currentLine = '';
