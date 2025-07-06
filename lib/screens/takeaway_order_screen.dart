@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../model/menu_data.dart';
 import '../model/order_model.dart';
 import '../services/order_provider.dart';
+import '../services/postcode_service.dart';
 import '../Screens/order_summary.dart';
 import '../Screens/menu_item_screen.dart';
 
@@ -18,9 +20,16 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   bool showCustomerForm = false;
   bool showSearch = false;
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController postcodeController = TextEditingController();
   final FocusNode searchFocusNode = FocusNode();
   List<MenuItem> searchResults = [];
   String lastSearchQuery = '';
+  List<String> foundAddresses = [];
+  String? selectedAddress;
+  bool isLookingUp = false;
+
+  final PostcodeService postcodeService =
+      PostcodeService(dotenv.env['GETADDRESS_API_KEY']!);
 
   @override
   void initState() {
@@ -34,6 +43,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   @override
   void dispose() {
     searchController.dispose();
+    postcodeController.dispose();
     searchFocusNode.dispose();
     super.dispose();
   }
@@ -73,6 +83,24 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
         searchResults.clear();
         lastSearchQuery = '';
       }
+    });
+  }
+
+  Future<void> _findAddress() async {
+    if (postcodeController.text.isEmpty) return;
+
+    setState(() {
+      isLookingUp = true;
+      foundAddresses = [];
+      selectedAddress = null;
+    });
+
+    final addresses =
+        await postcodeService.getAddresses(postcodeController.text);
+
+    setState(() {
+      foundAddresses = addresses;
+      isLookingUp = false;
     });
   }
 
@@ -874,26 +902,58 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
 
                 if (orderProvider.customerInfo.isDelivery) ...[
                   const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Address *',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                    onChanged: (value) {
-                      orderProvider.updateCustomerInfo(address: value);
-                    },
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: postcodeController,
+                          decoration: const InputDecoration(
+                            labelText: 'Postcode *',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (value) {
+                            orderProvider.updateCustomerInfo(postcode: value);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: isLookingUp ? null : _findAddress,
+                        child: isLookingUp
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Find Address'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Postcode *',
-                      border: OutlineInputBorder(),
+                  if (foundAddresses.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedAddress,
+                      items: foundAddresses.map((String address) {
+                        return DropdownMenuItem<String>(
+                          value: address,
+                          child: Text(address),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedAddress = newValue;
+                          orderProvider.updateCustomerInfo(address: newValue);
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        labelText: 'Select Address *',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
-                    onChanged: (value) {
-                      orderProvider.updateCustomerInfo(postcode: value);
-                    },
-                  ),
+                  ],
                 ],
 
                 const SizedBox(height: 16),
