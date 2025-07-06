@@ -51,6 +51,7 @@ dependencies:
 
   # Optional: Device information
   device_info_plus: ^9.1.0
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +66,10 @@ dev_dependencies:
 # Flutter configuration (SINGLE flutter: section)
 flutter:
   uses-material-design: true
+
+  # Add the assets section and your .env file here
+  assets:
+    - .env
 
 # Windows MSIX packaging configuration
 msix_config:
