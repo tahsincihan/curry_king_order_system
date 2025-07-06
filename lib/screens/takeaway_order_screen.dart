@@ -20,19 +20,31 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   bool showCustomerForm = false;
   bool showSearch = false;
   final TextEditingController searchController = TextEditingController();
-  final TextEditingController addressController = TextEditingController();
   final TextEditingController postcodeController = TextEditingController();
   final FocusNode searchFocusNode = FocusNode();
   List<MenuItem> searchResults = [];
   String lastSearchQuery = '';
-  List<String> addressSuggestions = [];
-  bool isSearchingAddress = false;
+  List<String> foundAddresses = [];
+  String? selectedAddress;
+  bool isLookingUp = false;
 
-  final PostcodeService postcodeService = PostcodeService(dotenv.env['GETADDRESS_API_KEY']!);
+  late final PostcodeService postcodeService;
 
   @override
   void initState() {
     super.initState();
+    
+    // Initialize postcode service with safe API key handling
+    final apiKey = dotenv.env['GETADDRESS_API_KEY'];
+    postcodeService = PostcodeService(apiKey);
+    
+    // Log API key status for debugging
+    if (apiKey == null || apiKey.isEmpty) {
+      print('Warning: GETADDRESS_API_KEY not found in .env file. Using mock addresses.');
+    } else {
+      print('✓ GetAddress API key loaded successfully');
+    }
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<OrderProvider>(context, listen: false)
           .setOrderType('takeaway');
@@ -42,7 +54,6 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   @override
   void dispose() {
     searchController.dispose();
-    addressController.dispose();
     postcodeController.dispose();
     searchFocusNode.dispose();
     super.dispose();
@@ -73,10 +84,12 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
     setState(() {
       showSearch = !showSearch;
       if (showSearch) {
+        // Auto-focus search field when opened
         WidgetsBinding.instance.addPostFrameCallback((_) {
           searchFocusNode.requestFocus();
         });
       } else {
+        // Clear search when closing
         searchController.clear();
         searchResults.clear();
         lastSearchQuery = '';
@@ -84,33 +97,66 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
     });
   }
 
-  Future<void> _onAddressChanged(String query) async {
-    if (query.length < 3) {
-      setState(() {
-        addressSuggestions = [];
-      });
+  Future<void> _findAddress() async {
+    if (postcodeController.text.isEmpty) {
+      _showSnackBar('Please enter a postcode');
+      return;
+    }
+
+    // Validate postcode format
+    if (!postcodeService.isValidUKPostcode(postcodeController.text)) {
+      _showSnackBar('Please enter a valid UK postcode (e.g., SW1A 1AA)');
       return;
     }
 
     setState(() {
-      isSearchingAddress = true;
+      isLookingUp = true;
+      foundAddresses = [];
+      selectedAddress = null;
     });
 
-    final suggestions = await postcodeService.getAddresses(query);
+    try {
+      final addresses = await postcodeService.getAddresses(postcodeController.text);
+      
+      setState(() {
+        foundAddresses = addresses;
+        isLookingUp = false;
+      });
 
-    setState(() {
-      addressSuggestions = suggestions;
-      isSearchingAddress = false;
-    });
+      if (addresses.isEmpty) {
+        _showSnackBar('No addresses found for this postcode');
+      } else if (addresses.length == 1 && addresses.first.contains('Sample Town')) {
+        _showSnackBar('Using mock addresses - API service unavailable');
+      }
+      
+    } catch (e) {
+      setState(() {
+        isLookingUp = false;
+      });
+      _showSnackBar('Error finding addresses: ${e.toString()}');
+    }
+  }
+
+  void _showSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   // Handle back button press
   Future<bool> _onWillPop() async {
+    // If search is open, close it first
     if (showSearch) {
       _toggleSearch();
       return false;
     }
 
+    // If customer form is shown, go back to menu
     if (showCustomerForm) {
       setState(() {
         showCustomerForm = false;
@@ -120,7 +166,9 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
 
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
 
+    // Check if there are items in the cart
     if (orderProvider.orderItems.isNotEmpty) {
+      // Show confirmation dialog
       final shouldPop = await showDialog<bool>(
         context: context,
         builder: (context) {
@@ -131,14 +179,15 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(false);
+                  Navigator.of(context).pop(false); // Don't discard (cancel)
                 },
                 child: const Text('CANCEL'),
               ),
               TextButton(
                 onPressed: () {
+                  // Clear the cart and return to home
                   orderProvider.clearOrder();
-                  Navigator.of(context).pop(true);
+                  Navigator.of(context).pop(true); // Discard order
                 },
                 child:
                     const Text('DISCARD', style: TextStyle(color: Colors.red)),
@@ -150,7 +199,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
       return shouldPop ?? false;
     }
 
-    return true;
+    return true; // If no items in cart, allow back navigation
   }
 
   @override
@@ -188,12 +237,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                             showCustomerForm = true;
                           });
                         } else {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Add items to cart first')),
-                            );
-                          }
+                          _showSnackBar('Add items to cart first');
                         }
                       },
                     ),
@@ -237,6 +281,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   Widget _buildCategoryAndMenuScreen() {
     return Column(
       children: [
+        // Search bar
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           height: showSearch ? 80 : 0,
@@ -273,6 +318,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                 )
               : const SizedBox.shrink(),
         ),
+
+        // Horizontal category list (hidden when searching)
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           height: showSearch ? 0 : 48,
@@ -329,9 +376,13 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                 )
               : const SizedBox.shrink(),
         ),
+
+        // Category title and items
         Expanded(
           child: showSearch ? _buildSearchResults() : _buildMenuItems(),
         ),
+
+        // Order summary footer
         _buildOrderSummaryFooter(),
       ],
     );
@@ -464,6 +515,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   }
 
   Widget _buildMenuItem(MenuItem item, {bool highlightSearch = false}) {
+    // Helper to highlight search terms
     Widget _highlightText(String text, {TextStyle? style}) {
       if (!highlightSearch || lastSearchQuery.isEmpty) {
         return Text(text, style: style);
@@ -502,6 +554,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
       child: InkWell(
         onTap: () {
+          // Navigate to detail screen
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -514,11 +567,13 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Item details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Item name
                     _highlightText(
                       item.name,
                       style: const TextStyle(
@@ -526,6 +581,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
+                    // Category (always shown in search results)
                     if (showSearch || highlightSearch) ...[
                       const SizedBox(height: 2),
                       _highlightText(
@@ -537,6 +594,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                         ),
                       ),
                     ],
+
+                    // Description if available
                     if (item.description != null) ...[
                       const SizedBox(height: 4),
                       _highlightText(
@@ -547,7 +606,10 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                         ),
                       ),
                     ],
+
                     const SizedBox(height: 4),
+
+                    // Price - Show takeaway price
                     Row(
                       children: [
                         Text(
@@ -575,6 +637,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   ],
                 ),
               ),
+
+              // Add button
               Container(
                 decoration: BoxDecoration(
                   color: Colors.orange[600],
@@ -600,7 +664,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
     return Consumer<OrderProvider>(
       builder: (context, orderProvider, child) {
         if (orderProvider.orderItems.isEmpty) {
-          return const SizedBox.shrink();
+          return const SizedBox.shrink(); // No footer if cart is empty
         }
 
         return Container(
@@ -618,6 +682,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
           ),
           child: Row(
             children: [
+              // Order summary
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -640,6 +705,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   ],
                 ),
               ),
+
+              // View order button
               ElevatedButton(
                 onPressed: () {
                   setState(() {
@@ -673,6 +740,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Header
                 Row(
                   children: [
                     IconButton(
@@ -696,6 +764,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
+
+                // Order summary
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -808,6 +878,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
+
+                // Collection/Delivery Toggle
                 const Text(
                   'Order Type:',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -855,6 +927,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
+
+                // Customer Name
                 TextFormField(
                   decoration: const InputDecoration(
                     labelText: 'Customer Name *',
@@ -864,56 +938,68 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     orderProvider.updateCustomerInfo(name: value);
                   },
                 ),
+
                 if (orderProvider.customerInfo.isDelivery) ...[
                   const SizedBox(height: 16),
-                  Autocomplete<String>(
-                    optionsBuilder: (TextEditingValue textEditingValue) async {
-                      if (textEditingValue.text.isEmpty) {
-                        return const Iterable<String>.empty();
-                      }
-                      return await postcodeService
-                          .getAddresses(textEditingValue.text);
-                    },
-                    onSelected: (String selection) {
-                      setState(() {
-                        addressController.text = selection;
-                        orderProvider.updateCustomerInfo(address: selection);
-                      });
-                    },
-                    fieldViewBuilder: (BuildContext context,
-                        TextEditingController fieldController,
-                        FocusNode fieldFocusNode,
-                        VoidCallback onFieldSubmitted) {
-                      return TextFormField(
-                        controller: fieldController,
-                        focusNode: fieldFocusNode,
-                        decoration: InputDecoration(
-                          labelText: 'Search Address *',
-                          border: const OutlineInputBorder(),
-                          suffixIcon: isSearchingAddress
-                              ? const Padding(
-                                  padding: EdgeInsets.all(8.0),
-                                  child: CircularProgressIndicator(),
-                                )
-                              : null,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: postcodeController,
+                          decoration: const InputDecoration(
+                            labelText: 'Postcode *',
+                            border: OutlineInputBorder(),
+                            hintText: 'e.g., SW1A 1AA',
+                          ),
+                          onChanged: (value) {
+                            orderProvider.updateCustomerInfo(postcode: value);
+                          },
                         ),
-                        onChanged: _onAddressChanged,
-                      );
-                    },
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: isLookingUp ? null : _findAddress,
+                        child: isLookingUp
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Find Address'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: addressController,
-                    decoration: const InputDecoration(
-                      labelText: 'Full Address *',
-                      border: OutlineInputBorder(),
+                  if (foundAddresses.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedAddress,
+                      items: foundAddresses.map((String address) {
+                        return DropdownMenuItem<String>(
+                          value: address,
+                          child: Text(
+                            address,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedAddress = newValue;
+                          orderProvider.updateCustomerInfo(address: newValue);
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        labelText: 'Select Address *',
+                        border: OutlineInputBorder(),
+                      ),
+                      isExpanded: true,
                     ),
-                    maxLines: 3,
-                    onChanged: (value) {
-                      orderProvider.updateCustomerInfo(address: value);
-                    },
-                  ),
+                  ],
                 ],
+
                 const SizedBox(height: 16),
                 TextFormField(
                   decoration: const InputDecoration(
@@ -925,7 +1011,10 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     orderProvider.updateCustomerInfo(phoneNumber: value);
                   },
                 ),
+
                 const SizedBox(height: 24),
+
+                // Payment Method
                 const Text('Payment Method:',
                     style:
                         TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
@@ -981,7 +1070,10 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 32),
+
+                // Submit Button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -1025,7 +1117,9 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
 
     if (orderProvider.customerInfo.isDelivery) {
       bool hasAddress = orderProvider.customerInfo.address?.isNotEmpty == true;
-      return hasName && hasAddress && hasPhone;
+      bool hasPostcode =
+          orderProvider.customerInfo.postcode?.isNotEmpty == true;
+      return hasName && hasAddress && hasPostcode && hasPhone;
     }
 
     return hasName && hasPhone;
