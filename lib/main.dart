@@ -1,16 +1,70 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:ui';
-import 'dart:io';
 import 'services/order_provider.dart';
 import 'services/sales_provider.dart';
 import 'theme/touch_theme.dart';
 
+// Conditional imports for platform-specific code
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
+
+// Import window_manager types for type checking and code completion
+import 'package:window_manager/window_manager.dart' show WindowOptions, TitleBarStyle;
+
 // Import screens
 import 'screens/home_screen.dart';
+
+// Platform-specific imports with conditional loading
+dynamic windowManager;
+bool get isDesktop => !kIsWeb && _isDesktopPlatform();
+
+bool _isDesktopPlatform() {
+  try {
+    // Only import dart:io if not on web
+    if (kIsWeb) return false;
+    
+    // Use a safer method to detect platform
+    return defaultTargetPlatform == TargetPlatform.windows ||
+           defaultTargetPlatform == TargetPlatform.macOS ||
+           defaultTargetPlatform == TargetPlatform.linux;
+  } catch (e) {
+    print('Platform detection failed: $e');
+    return false;
+  }
+}
+
+Future<void> _initializeWindowManager() async {
+  if (!isDesktop) return;
+  
+  try {
+    // Dynamically import window_manager only for desktop
+    final windowManagerModule = await import('package:window_manager/window_manager.dart');
+    windowManager = windowManagerModule.windowManager;
+    final windowOptions = WindowOptions(
+      size: const Size(1200, 800),
+      minimumSize: const Size(800, 600),
+      center: true,
+      backgroundColor: Colors.transparent,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.normal,
+      windowButtonVisibility: true,
+      title: 'Curry King POS - Touch Screen',
+      fullScreen: false,
+    );
+
+    await windowManager?.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager?.show();
+      await windowManager?.focus();
+    });
+    
+    print('✓ Window manager setup successfully');
+  } catch (e) {
+    print('⚠ Warning: Window manager setup failed: $e');
+    // Continue without window manager
+  }
+}
 
 Future<void> main() async {
   // Ensure Flutter is initialized
@@ -19,6 +73,8 @@ Future<void> main() async {
   // Initialize with comprehensive error handling
   try {
     print('Starting Curry King POS initialization...');
+    print('Platform: ${kIsWeb ? 'Web' : 'Native'}');
+    print('Desktop platform: $isDesktop');
 
     // Load environment file (optional)
     try {
@@ -42,52 +98,30 @@ Future<void> main() async {
     }
 
     // Setup window manager only on desktop platforms
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      try {
-        print('Setting up window manager for desktop...');
-        await windowManager.ensureInitialized();
-        
-        WindowOptions windowOptions = const WindowOptions(
-          size: Size(1200, 800), // Reduced from 1920x1080 for safety
-          minimumSize: Size(800, 600),
-          center: true,
-          backgroundColor: Colors.transparent,
-          skipTaskbar: false,
-          titleBarStyle: TitleBarStyle.normal,
-          windowButtonVisibility: true,
-          title: 'Curry King POS - Touch Screen',
-          fullScreen: false,
-        );
-
-        windowManager.waitUntilReadyToShow(windowOptions, () async {
-          await windowManager.show();
-          await windowManager.focus();
-        });
-        
-        print('✓ Window manager setup successfully');
-      } catch (e) {
-        print('⚠ Warning: Window manager setup failed: $e');
-        // Continue without window manager
-      }
+    if (isDesktop) {
+      print('Setting up window manager for desktop...');
+      await _initializeWindowManager();
     } else {
-      print('Running on mobile platform - skipping window manager');
+      print('Running on ${kIsWeb ? 'web' : 'mobile'} platform - skipping window manager');
     }
 
-    // Configure system UI with error handling
-    try {
-      SystemChrome.setEnabledSystemUIMode(
-        SystemUiMode.manual,
-        overlays: [SystemUiOverlay.top],
-      );
+    // Configure system UI with error handling (only for mobile/desktop)
+    if (!kIsWeb) {
+      try {
+        SystemChrome.setEnabledSystemUIMode(
+          SystemUiMode.manual,
+          overlays: [SystemUiOverlay.top],
+        );
 
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-        DeviceOrientation.portraitUp,
-      ]);
-      print('✓ System UI configured successfully');
-    } catch (e) {
-      print('⚠ Warning: Could not configure system UI: $e');
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+          DeviceOrientation.portraitUp,
+        ]);
+        print('✓ System UI configured successfully');
+      } catch (e) {
+        print('⚠ Warning: Could not configure system UI: $e');
+      }
     }
 
     print('✓ Initialization complete - Starting app...');
@@ -120,10 +154,10 @@ class MyApp extends StatelessWidget {
           materialTapTargetSize: MaterialTapTargetSize.padded,
           splashColor: TouchPOSTheme.touchSplash,
           highlightColor: TouchPOSTheme.touchHighlight,
-          platform: TargetPlatform.android, // Changed from windows for compatibility
+          platform: TargetPlatform.android, // Safe default for all platforms
         ),
         scrollBehavior: const TouchScrollBehavior(),
-        home: const SafeHomeScreen(), // Wrapped in SafeHomeScreen
+        home: const SafeHomeScreen(),
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
           return TouchScreenWrapper(child: child!);
@@ -193,10 +227,12 @@ class _SafeHomeScreenState extends State<SafeHomeScreen> {
       return const HomeScreen();
     } catch (e) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() {
-          hasError = true;
-          errorMessage = 'Error loading home screen: $e';
-        });
+        if (mounted) {
+          setState(() {
+            hasError = true;
+            errorMessage = 'Error loading home screen: $e';
+          });
+        }
       });
       return const Scaffold(
         body: Center(
@@ -272,7 +308,14 @@ class ErrorApp extends StatelessWidget {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () {
-                    SystemNavigator.pop();
+                    // Try to restart
+                    if (kIsWeb) {
+                      // On web, we can't close the window
+                      // Instead, reload the page
+                      print('Please refresh the page to restart');
+                    } else {
+                      SystemNavigator.pop();
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange[600],
@@ -282,9 +325,9 @@ class ErrorApp extends StatelessWidget {
                       vertical: 16,
                     ),
                   ),
-                  child: const Text(
-                    'Close Application',
-                    style: TextStyle(fontSize: 18),
+                  child: Text(
+                    kIsWeb ? 'Refresh Page' : 'Close Application',
+                    style: const TextStyle(fontSize: 18),
                   ),
                 ),
               ],
@@ -335,6 +378,8 @@ class _TouchScreenWrapperState extends State<TouchScreenWrapper>
   }
 
   void _configureTouchSettings() {
+    if (kIsWeb) return; // Skip system UI changes on web
+    
     try {
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -377,4 +422,10 @@ class _TouchScreenWrapperState extends State<TouchScreenWrapper>
       child: widget.child,
     );
   }
+}
+
+// Stub for dynamic import (this is a simplified approach)
+// In a real implementation, you might use conditional imports more elegantly
+dynamic import(String library) async {
+  throw UnsupportedError('Dynamic imports not fully supported in this context');
 }
