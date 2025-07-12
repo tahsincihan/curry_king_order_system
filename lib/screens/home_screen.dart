@@ -395,84 +395,90 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMainActionsPanel() {
     return Card(
       elevation: 4,
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.restaurant,
-              size: 80,
-              color: Colors.orange[800],
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'New Order',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-            ),
-            const Text(
-              'Select order type to begin',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 32),
-            
-            // Main Order Buttons
-            _buildLargeOrderButton(
-              context: context,
-              title: 'TAKEAWAY ORDER',
-              subtitle: 'Collection & Delivery • Press F1',
-              icon: Icons.takeout_dining,
-              onPressed: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const TakeawayOrderScreen())),
-              color: Colors.orange[600]!,
-            ),
-            
-            const SizedBox(height: 20),
-            
-            _buildLargeOrderButton(
-              context: context,
-              title: 'DINE IN ORDER',
-              subtitle: 'Table Service • Press F2',
-              icon: Icons.restaurant_menu,
-              onPressed: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const DineInOrderScreen())),
-              color: Colors.blue[600]!,
-            ),
-
-            const SizedBox(height: 32),
-
-            // Quick Actions Row
-            Row(
+      clipBehavior: Clip.antiAlias, // Ensures scrolling content respects the card's rounded corners
+      child: Padding( // Use Padding for cleaner code
+        padding: const EdgeInsets.all(24.0),
+        child: Center( // Center the content vertically for larger screens
+          child: SingleChildScrollView( // Make the content scrollable to prevent overflow
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center, // Centers content within the column
+              mainAxisSize: MainAxisSize.min, // Ensures column only takes up needed space
               children: [
-                Expanded(
-                  child: _buildQuickActionButton(
-                    title: 'Sales Report',
-                    icon: Icons.analytics,
-                    onPressed: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const SalesScreen())),
-                  ),
+                Icon(
+                  Icons.restaurant,
+                  size: 80,
+                  color: Colors.orange[800],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildQuickActionButton(
-                    title: 'API Test',
-                    icon: Icons.api,
-                    onPressed: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const ApiTestScreen())),
-                  ),
+                const SizedBox(height: 16),
+                const Text(
+                  'New Order',
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildQuickActionButton(
-                    title: 'Printer Setup',
-                    icon: Icons.print,
-                    onPressed: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => PrinterSettingsScreen())),
-                  ),
+                const Text(
+                  'Select order type to begin',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 32),
+                
+                // Main Order Buttons
+                _buildLargeOrderButton(
+                  context: context,
+                  title: 'TAKEAWAY ORDER',
+                  subtitle: 'Collection & Delivery • Press F1',
+                  icon: Icons.takeout_dining,
+                  onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const TakeawayOrderScreen())),
+                  color: Colors.orange[600]!,
+                ),
+                
+                const SizedBox(height: 20),
+                
+                _buildLargeOrderButton(
+                  context: context,
+                  title: 'DINE IN ORDER',
+                  subtitle: 'Table Service • Press F2',
+                  icon: Icons.restaurant_menu,
+                  onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const DineInOrderScreen())),
+                  color: Colors.blue[600]!,
+                ),
+
+                const SizedBox(height: 32),
+
+                // Quick Actions Row
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildQuickActionButton(
+                        title: 'Sales Report',
+                        icon: Icons.analytics,
+                        onPressed: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const SalesScreen())),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildQuickActionButton(
+                        title: 'API Test',
+                        icon: Icons.api,
+                        onPressed: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const ApiTestScreen())),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildQuickActionButton(
+                        title: 'Printer Setup',
+                        icon: Icons.print,
+                        onPressed: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => PrinterSettingsScreen())),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -535,28 +541,28 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData icon,
     required VoidCallback onPressed,
   }) {
-    return SizedBox(
-      height: 60,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          side: BorderSide(color: Colors.orange[300]!),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20, color: Colors.orange[600]),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.orange[600],
-              ),
+    // Return a more flexible button without a fixed height
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        side: BorderSide(color: Colors.orange[300]!),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4), // Use padding for sizing
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 20, color: Colors.orange[600]),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            textAlign: TextAlign.center, // Center text if it wraps
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.orange[600],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
