@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../model/sales_model.dart';
 import '../model/order_model.dart';
+import '../services/customer_service.dart';
 
 class SalesService {
   static const String _salesBoxName = 'daily_sales';
@@ -55,9 +56,19 @@ class SalesService {
           Hive.registerAdapter(SaleTransactionAdapter());
           print('✓ SaleTransactionAdapter registered');
         }
+        // Customer adapter is registered in CustomerService
       } catch (e) {
         print('Error registering adapters: $e');
         // Continue anyway - adapters might already be registered
+      }
+
+      // Initialize customer service first
+      try {
+        await CustomerService.initialize();
+        print('✓ CustomerService initialized successfully');
+      } catch (e) {
+        print('⚠ Warning: CustomerService initialization failed: $e');
+        // Continue without customer service
       }
 
       // Open the sales box with retry logic
@@ -168,6 +179,19 @@ class SalesService {
 
       // Add transaction to today's sales
       todaySales.addTransaction(transaction);
+
+      // Save customer data if it's a takeaway order with customer info
+      if (order.orderType == 'takeaway' && 
+          order.customerInfo.name?.isNotEmpty == true && 
+          order.customerInfo.phoneNumber?.isNotEmpty == true) {
+        try {
+          await CustomerService.saveCustomerFromOrder(order);
+          print('✓ Customer data saved');
+        } catch (e) {
+          print('⚠ Warning: Failed to save customer data: $e');
+          // Continue with sale even if customer save fails
+        }
+      }
 
       // Save to Hive with retry logic
       int retryCount = 0;
@@ -294,13 +318,14 @@ class SalesService {
 
     try {
       final todayKey = _getTodayKey();
+      final yesterdayKey = _getYesterdayKey();
 
-      // Find all keys that are NOT today's key
+      // Find all keys that are NOT today's or yesterday's key
       final keysToDelete = _salesBox!.keys
-          .where((key) => key.toString() != todayKey)
+          .where((key) => key.toString() != todayKey && key.toString() != yesterdayKey)
           .toList();
 
-      // Delete all records except today's
+      // Delete all records except today's and yesterday's
       for (final key in keysToDelete) {
         try {
           await _salesBox!.delete(key);
