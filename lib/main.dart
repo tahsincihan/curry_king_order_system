@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:ui';
 import 'services/order_provider.dart';
 import 'services/sales_provider.dart';
+import 'services/customer_provider.dart'; // NEW: Add customer provider
 import 'theme/touch_theme.dart';
 
 // Conditional imports for platform-specific code
@@ -97,6 +98,17 @@ Future<void> main() async {
       // Continue with uninitialized provider
     }
 
+    // NEW: Initialize customer provider with error handling
+    print('Initializing customer provider...');
+    final customerProvider = CustomerProvider();
+    try {
+      await customerProvider.initialize();
+      print('✓ Customer provider initialized successfully');
+    } catch (e) {
+      print('⚠ Warning: Customer provider initialization failed: $e');
+      // Continue with uninitialized provider
+    }
+
     // Setup window manager only on desktop platforms
     if (isDesktop) {
       print('Setting up window manager for desktop...');
@@ -125,7 +137,10 @@ Future<void> main() async {
     }
 
     print('✓ Initialization complete - Starting app...');
-    runApp(MyApp(salesProvider: salesProvider));
+    runApp(MyApp(
+      salesProvider: salesProvider,
+      customerProvider: customerProvider, // NEW: Pass customer provider
+    ));
     
   } catch (e, stackTrace) {
     print('❌ Critical error during app initialization: $e');
@@ -138,8 +153,13 @@ Future<void> main() async {
 
 class MyApp extends StatelessWidget {
   final SalesProvider salesProvider;
+  final CustomerProvider customerProvider; // NEW: Add customer provider
 
-  const MyApp({Key? key, required this.salesProvider}) : super(key: key);
+  const MyApp({
+    Key? key, 
+    required this.salesProvider,
+    required this.customerProvider, // NEW: Required parameter
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +167,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (context) => OrderProvider()),
         ChangeNotifierProvider.value(value: salesProvider),
+        ChangeNotifierProvider.value(value: customerProvider), // NEW: Add customer provider
       ],
       child: MaterialApp(
         title: 'Curry King Touch POS',

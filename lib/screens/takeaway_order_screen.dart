@@ -3,8 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../model/menu_data.dart';
 import '../model/order_model.dart';
+import '../model/customer_model.dart';
 import '../services/order_provider.dart';
-import '../services/hybrid_address_service.dart';
+import '../services/customer_provider.dart';
+import '../services/postcode_service.dart';
+import '../widgets/customer_lookup_dialog.dart';
 import '../Screens/order_summary.dart';
 import '../Screens/menu_item_screen.dart';
 
@@ -21,29 +24,28 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   bool showSearch = false;
   final TextEditingController searchController = TextEditingController();
   final TextEditingController postcodeController = TextEditingController();
-  final TextEditingController addressController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
   final FocusNode searchFocusNode = FocusNode();
   List<MenuItem> searchResults = [];
   String lastSearchQuery = '';
   List<String> foundAddresses = [];
   String? selectedAddress;
   bool isLookingUp = false;
-  
-  // NEW: Hybrid address service variables
-  late final HybridAddressService hybridAddressService;
-  AddressLookupResult? _lastLookupResult;
+
+  late final PostcodeService postcodeService;
 
   @override
   void initState() {
     super.initState();
     
-    // Initialize hybrid address service
+    // Initialize postcode service with safe API key handling
     final apiKey = dotenv.env['GETADDRESS_API_KEY'];
-    hybridAddressService = HybridAddressService(apiKey);
+    postcodeService = PostcodeService(apiKey);
     
     // Log API key status for debugging
     if (apiKey == null || apiKey.isEmpty) {
-      print('Warning: GETADDRESS_API_KEY not found in .env file. Will use Postcodes.io and manual entry.');
+      print('Warning: GETADDRESS_API_KEY not found in .env file. Using mock addresses.');
     } else {
       print('✓ GetAddress API key loaded successfully');
     }
@@ -58,7 +60,8 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   void dispose() {
     searchController.dispose();
     postcodeController.dispose();
-    addressController.dispose();
+    nameController.dispose();
+    phoneController.dispose();
     searchFocusNode.dispose();
     super.dispose();
   }
@@ -101,15 +104,14 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
     });
   }
 
-  // UPDATED: Smart address lookup using hybrid service
-  Future<void> _smartAddressLookup() async {
+  Future<void> _findAddress() async {
     if (postcodeController.text.isEmpty) {
       _showSnackBar('Please enter a postcode');
       return;
     }
 
-    // Validate basic format first
-    if (!hybridAddressService.isValidUKPostcodeFormat(postcodeController.text)) {
+    // Validate postcode format
+    if (!postcodeService.isValidUKPostcode(postcodeController.text)) {
       _showSnackBar('Please enter a valid UK postcode (e.g., SW1A 1AA)');
       return;
     }
@@ -118,64 +120,28 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
       isLookingUp = true;
       foundAddresses = [];
       selectedAddress = null;
-      _lastLookupResult = null;
     });
 
     try {
-      final result = await hybridAddressService.lookupAddresses(postcodeController.text);
+      final addresses = await postcodeService.getAddresses(postcodeController.text);
       
       setState(() {
-        _lastLookupResult = result;
-        foundAddresses = result.addresses;
+        foundAddresses = addresses;
         isLookingUp = false;
       });
 
-      // Show appropriate feedback based on result
-      if (result.success) {
-        if (result.addresses.isNotEmpty) {
-          _showSnackBar('Found ${result.addresses.length} addresses via ${hybridAddressService.getProviderName(result.provider)}');
-        } else if (result.provider == AddressProvider.postcodesIo) {
-          if (result.geocodingData?['within_delivery_radius'] == true) {
-            _showSnackBar('Postcode validated! Please enter your address manually.');
-          }
-        }
-      } else if (result.error != null) {
-        _showSnackBar(result.error!);
+      if (addresses.isEmpty) {
+        _showSnackBar('No addresses found for this postcode');
+      } else if (addresses.length == 1 && addresses.first.contains('Sample Town')) {
+        _showSnackBar('Using mock addresses - API service unavailable');
       }
       
     } catch (e) {
       setState(() {
         isLookingUp = false;
-        _lastLookupResult = null;
       });
-      _showSnackBar('Error looking up addresses: ${e.toString()}');
+      _showSnackBar('Error finding addresses: ${e.toString()}');
     }
-  }
-
-  // UPDATED: Handle address selection from dropdown
-  void _selectAddress(String? address) {
-    if (address != null) {
-      setState(() {
-        selectedAddress = address;
-        addressController.text = address; // Populate the address field
-        
-        // Close the dropdown by clearing the results
-        foundAddresses = [];
-        _lastLookupResult = null;
-      });
-      
-      // Update the order provider with the selected address
-      final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-      orderProvider.updateCustomerInfo(address: address);
-      
-      _showSnackBar('✓ Address selected and auto-filled');
-    }
-  }
-
-  // Handle manual address field changes
-  void _onAddressChanged(String value) {
-    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-    orderProvider.updateCustomerInfo(address: value);
   }
 
   void _showSnackBar(String message) {
@@ -936,14 +902,6 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                           if (selected) {
                             orderProvider.updateCustomerInfo(isDelivery: false);
                             orderProvider.setDeliveryCharge(0.0);
-                            // Clear delivery-specific fields
-                            setState(() {
-                              postcodeController.clear();
-                              addressController.clear();
-                              foundAddresses = [];
-                              selectedAddress = null;
-                              _lastLookupResult = null;
-                            });
                           }
                         },
                         labelStyle: TextStyle(
@@ -977,32 +935,160 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // Customer Lookup Section
+                Card(
+                  color: Colors.blue[50],
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.search, color: Colors.blue[700]),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Find Existing Customer',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Search by name or last 4 digits of phone number',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        CustomerLookupWidget(
+                          onCustomerSelected: (customer, address) {
+                            // Update the controllers with selected customer data
+                            nameController.text = customer.name;
+                            phoneController.text = customer.phoneNumber;
+                            
+                            // Update order provider
+                            orderProvider.updateCustomerInfoFromLookup(
+                              name: customer.name,
+                              phoneNumber: customer.phoneNumber,
+                              address: address.address,
+                              postcode: address.postcode,
+                              isDelivery: orderProvider.customerInfo.isDelivery,
+                            );
+                            
+                            // Auto-fill postcode controller if delivery
+                            if (orderProvider.customerInfo.isDelivery) {
+                              postcodeController.text = address.postcode;
+                              setState(() {
+                                foundAddresses = [address.address];
+                                selectedAddress = address.address;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Manual Entry Section
+                Text(
+                  'Or Enter Customer Details Manually:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
                 // Customer Name
                 TextFormField(
+                  controller: nameController,
                   decoration: const InputDecoration(
                     labelText: 'Customer Name *',
                     border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
                   ),
-                  textCapitalization: TextCapitalization.words,
                   onChanged: (value) {
                     orderProvider.updateCustomerInfo(name: value);
                   },
                 ),
 
-                // DELIVERY ADDRESS SECTION
-                if (orderProvider.customerInfo.isDelivery) 
-                  _buildDeliveryAddressSection(orderProvider),
+                if (orderProvider.customerInfo.isDelivery) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: postcodeController,
+                          decoration: const InputDecoration(
+                            labelText: 'Postcode *',
+                            border: OutlineInputBorder(),
+                            hintText: 'e.g., SW1A 1AA',
+                          ),
+                          onChanged: (value) {
+                            orderProvider.updateCustomerInfo(postcode: value);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: isLookingUp ? null : _findAddress,
+                        child: isLookingUp
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Find Address'),
+                      ),
+                    ],
+                  ),
+                  if (foundAddresses.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedAddress,
+                      items: foundAddresses.map((String address) {
+                        return DropdownMenuItem<String>(
+                          value: address,
+                          child: Text(
+                            address,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedAddress = newValue;
+                          orderProvider.updateCustomerInfo(address: newValue);
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        labelText: 'Select Address *',
+                        border: OutlineInputBorder(),
+                      ),
+                      isExpanded: true,
+                    ),
+                  ],
+                ],
 
                 const SizedBox(height: 16),
-                
-                // Phone Number
                 TextFormField(
+                  controller: phoneController,
                   decoration: const InputDecoration(
                     labelText: 'Phone Number *',
                     border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.phone),
-                    hintText: 'e.g., 07700 900123',
                   ),
                   keyboardType: TextInputType.phone,
                   onChanged: (value) {
@@ -1109,403 +1195,15 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
     );
   }
 
-  // NEW: Enhanced delivery address section with hybrid service
-  Widget _buildDeliveryAddressSection(OrderProvider orderProvider) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 16),
-        
-        // Postcode Input with Smart Lookup
-        Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: TextFormField(
-                controller: postcodeController,
-                decoration: InputDecoration(
-                  labelText: 'Postcode *',
-                  border: const OutlineInputBorder(),
-                  hintText: 'e.g., SW1A 1AA',
-                  prefixIcon: const Icon(Icons.location_on),
-                  suffixIcon: postcodeController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            postcodeController.clear();
-                            addressController.clear();
-                            setState(() {
-                              foundAddresses = [];
-                              selectedAddress = null;
-                              _lastLookupResult = null;
-                            });
-                            orderProvider.updateCustomerInfo(postcode: '', address: '');
-                          },
-                        )
-                      : null,
-                ),
-                textCapitalization: TextCapitalization.characters,
-                onChanged: (value) {
-                  orderProvider.updateCustomerInfo(postcode: value);
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: isLookingUp ? null : _smartAddressLookup,
-              icon: isLookingUp
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.search),
-              label: Text(isLookingUp ? 'Searching...' : 'Find'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue[600],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              ),
-            ),
-          ],
-        ),
-        
-        const SizedBox(height: 16),
-        
-        // Address Input Field (Always Visible)
-        TextFormField(
-          controller: addressController,
-          decoration: InputDecoration(
-            labelText: 'Full Address *',
-            border: const OutlineInputBorder(),
-            hintText: 'Enter your complete delivery address',
-            prefixIcon: const Icon(Icons.home),
-            helperText: foundAddresses.isNotEmpty 
-                ? 'Select from suggestions below or type manually'
-                : 'Enter your full delivery address',
-            helperMaxLines: 2,
-          ),
-          onChanged: _onAddressChanged,
-          maxLines: 2,
-          textCapitalization: TextCapitalization.words,
-        ),
-        
-        // Smart Address Results Section
-        if (isLookingUp) ...[
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue[200]!),
-            ),
-            child: const Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 12),
-                Text('Searching for addresses...'),
-              ],
-            ),
-          ),
-        ],
-        
-        // Address Selection Results
-        if (_lastLookupResult != null && !isLookingUp) ...[
-          const SizedBox(height: 16),
-          _buildAddressResults(),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildAddressResults() {
-    if (_lastLookupResult == null) return const SizedBox.shrink();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _getResultContainerColor(),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _getResultBorderColor()),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(_getResultIcon(), color: _getResultIconColor(), size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _getResultTitle(),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: _getResultTextColor(),
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _getProviderChipColor(),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  hybridAddressService.getProviderName(_lastLookupResult!.provider),
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-          
-          // Show distance info if available
-          if (_lastLookupResult!.geocodingData?['distance_km'] != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.navigation, size: 16, color: _getResultIconColor()),
-                const SizedBox(width: 4),
-                Text(
-                  '${_lastLookupResult!.geocodingData!['distance_km']}km from restaurant',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _getResultTextColor(),
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ),
-          ],
-          
-          const SizedBox(height: 12),
-          
-          // Show addresses if available
-          if (foundAddresses.isNotEmpty) ...[
-            const Text('Select your address:', style: TextStyle(fontWeight: FontWeight.w500)),
-            const SizedBox(height: 8),
-            ...foundAddresses.asMap().entries.map((entry) {
-              final index = entry.key;
-              final address = entry.value;
-              final isSelected = selectedAddress == address;
-              
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: InkWell(
-                  onTap: () => _selectAddress(address),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isSelected ? Colors.blue[100] : Colors.white,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: isSelected ? Colors.blue[400]! : Colors.grey[300]!,
-                        width: isSelected ? 2 : 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 12,
-                          backgroundColor: isSelected ? Colors.blue[600] : Colors.grey[400],
-                          child: Text(
-                            '${index + 1}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            address,
-                            style: TextStyle(
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                        if (isSelected)
-                          Icon(Icons.check_circle, color: Colors.blue[600], size: 20),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ] else if (_lastLookupResult!.provider == AddressProvider.postcodesIo) ...[
-            if (_lastLookupResult!.geocodingData?['within_delivery_radius'] == true) ...[
-              Text(
-                'Postcode validated! Please type your full address in the field above.',
-                style: TextStyle(
-                  color: _getResultTextColor(),
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ] else ...[
-              Text(
-                _lastLookupResult!.error ?? 'Outside delivery area',
-                style: TextStyle(
-                  color: Colors.red[700],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ] else if (_lastLookupResult!.error != null) ...[
-            Text(
-              _lastLookupResult!.error!,
-              style: TextStyle(
-                color: _getResultTextColor(),
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // Helper methods for dynamic styling
-  Color _getResultContainerColor() {
-    if (_lastLookupResult == null) return Colors.grey[50]!;
-    
-    // Check for delivery area issues first
-    if (_lastLookupResult!.geocodingData?['within_delivery_radius'] == false) {
-      return Colors.red[50]!;
-    }
-    
-    switch (_lastLookupResult!.provider) {
-      case AddressProvider.getAddress:
-        return foundAddresses.isNotEmpty ? Colors.green[50]! : Colors.orange[50]!;
-      case AddressProvider.postcodesIo:
-        return Colors.blue[50]!;
-      case AddressProvider.manual:
-        return Colors.grey[50]!;
-    }
-  }
-
-  Color _getResultBorderColor() {
-    if (_lastLookupResult == null) return Colors.grey[200]!;
-    
-    if (_lastLookupResult!.geocodingData?['within_delivery_radius'] == false) {
-      return Colors.red[200]!;
-    }
-    
-    switch (_lastLookupResult!.provider) {
-      case AddressProvider.getAddress:
-        return foundAddresses.isNotEmpty ? Colors.green[200]! : Colors.orange[200]!;
-      case AddressProvider.postcodesIo:
-        return Colors.blue[200]!;
-      case AddressProvider.manual:
-        return Colors.grey[200]!;
-    }
-  }
-
-  IconData _getResultIcon() {
-    if (_lastLookupResult == null) return Icons.info;
-    
-    if (_lastLookupResult!.geocodingData?['within_delivery_radius'] == false) {
-      return Icons.error_outline;
-    }
-    
-    switch (_lastLookupResult!.provider) {
-      case AddressProvider.getAddress:
-        return foundAddresses.isNotEmpty ? Icons.location_on : Icons.warning;
-      case AddressProvider.postcodesIo:
-        return Icons.verified;
-      case AddressProvider.manual:
-        return Icons.edit_location;
-    }
-  }
-
-  Color _getResultIconColor() {
-    if (_lastLookupResult == null) return Colors.grey[600]!;
-    
-    if (_lastLookupResult!.geocodingData?['within_delivery_radius'] == false) {
-      return Colors.red[600]!;
-    }
-    
-    switch (_lastLookupResult!.provider) {
-      case AddressProvider.getAddress:
-        return foundAddresses.isNotEmpty ? Colors.green[600]! : Colors.orange[600]!;
-      case AddressProvider.postcodesIo:
-        return Colors.blue[600]!;
-      case AddressProvider.manual:
-        return Colors.grey[600]!;
-    }
-  }
-
-  Color _getResultTextColor() {
-    if (_lastLookupResult == null) return Colors.grey[700]!;
-    
-    if (_lastLookupResult!.geocodingData?['within_delivery_radius'] == false) {
-      return Colors.red[700]!;
-    }
-    
-    switch (_lastLookupResult!.provider) {
-      case AddressProvider.getAddress:
-        return foundAddresses.isNotEmpty ? Colors.green[700]! : Colors.orange[700]!;
-      case AddressProvider.postcodesIo:
-        return Colors.blue[700]!;
-      case AddressProvider.manual:
-        return Colors.grey[700]!;
-    }
-  }
-
-  String _getResultTitle() {
-    if (_lastLookupResult == null) return 'Enter postcode to find addresses';
-    
-    if (_lastLookupResult!.geocodingData?['within_delivery_radius'] == false) {
-      return 'Outside delivery area';
-    }
-    
-    if (foundAddresses.isNotEmpty) {
-      return 'Found ${foundAddresses.length} addresses';
-    } else {
-      switch (_lastLookupResult!.provider) {
-        case AddressProvider.getAddress:
-          return 'No addresses found via GetAddress.io';
-        case AddressProvider.postcodesIo:
-          return 'Postcode validated via Postcodes.io';
-        case AddressProvider.manual:
-          return 'Manual address entry required';
-      }
-    }
-  }
-
-  Color _getProviderChipColor() {
-    if (_lastLookupResult == null) return Colors.grey[200]!;
-    
-    switch (_lastLookupResult!.provider) {
-      case AddressProvider.getAddress:
-        return Colors.green[200]!;
-      case AddressProvider.postcodesIo:
-        return Colors.blue[200]!;
-      case AddressProvider.manual:
-        return Colors.grey[200]!;
-    }
-  }
-
   bool _canProceed(OrderProvider orderProvider) {
     bool hasName = orderProvider.customerInfo.name?.isNotEmpty == true;
     bool hasPhone = orderProvider.customerInfo.phoneNumber?.isNotEmpty == true;
 
     if (orderProvider.customerInfo.isDelivery) {
       bool hasAddress = orderProvider.customerInfo.address?.isNotEmpty == true;
-      bool hasPostcode = orderProvider.customerInfo.postcode?.isNotEmpty == true;
-      
-      // Check if delivery is allowed (not outside delivery area)
-      bool deliveryAllowed = _lastLookupResult?.geocodingData?['within_delivery_radius'] != false;
-      
-      return hasName && hasAddress && hasPostcode && hasPhone && deliveryAllowed;
+      bool hasPostcode =
+          orderProvider.customerInfo.postcode?.isNotEmpty == true;
+      return hasName && hasAddress && hasPostcode && hasPhone;
     }
 
     return hasName && hasPhone;

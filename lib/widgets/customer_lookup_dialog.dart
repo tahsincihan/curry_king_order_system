@@ -1,405 +1,326 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../model/customer_model.dart';
-import '../services/customer_service.dart';
+import '../services/customer_provider.dart';
 
-class CustomerLookupDialog extends StatefulWidget {
-  final Function(Customer customer, String selectedAddress) onCustomerSelected;
+class CustomerLookupWidget extends StatefulWidget {
+  final Function(Customer customer, CustomerAddress address)? onCustomerSelected;
+  final bool showRecentCustomers;
+  final String? hintText;
 
-  const CustomerLookupDialog({
+  const CustomerLookupWidget({
     Key? key,
-    required this.onCustomerSelected,
+    this.onCustomerSelected,
+    this.showRecentCustomers = true,
+    this.hintText,
   }) : super(key: key);
 
   @override
-  _CustomerLookupDialogState createState() => _CustomerLookupDialogState();
+  _CustomerLookupWidgetState createState() => _CustomerLookupWidgetState();
 }
 
-class _CustomerLookupDialogState extends State<CustomerLookupDialog> {
+class _CustomerLookupWidgetState extends State<CustomerLookupWidget> {
   final TextEditingController _searchController = TextEditingController();
-  List<Customer> _searchResults = [];
-  List<Customer> _recentCustomers = [];
-  bool _isSearching = false;
-  bool _showingRecent = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadRecentCustomers();
-    _searchController.addListener(_onSearchChanged);
-  }
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _showSearchResults = false;
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
-  void _loadRecentCustomers() {
-    setState(() {
-      _recentCustomers = CustomerService.getRecentCustomers(limit: 10);
-    });
-  }
-
-  void _onSearchChanged() {
-    final query = _searchController.text.trim();
+  void _onSearchChanged(String query) {
+    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+    customerProvider.searchCustomers(query);
     
-    if (query.isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _showingRecent = true;
-        _isSearching = false;
-      });
-      return;
-    }
-
     setState(() {
-      _isSearching = true;
-      _showingRecent = false;
-    });
-
-    // Debounce search
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (_searchController.text.trim() == query) {
-        _performSearch(query);
-      }
+      _showSearchResults = query.isNotEmpty;
     });
   }
 
-  void _performSearch(String query) {
-    final results = CustomerService.searchCustomers(query);
+  void _selectCustomer(Customer customer) {
+    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+    
+    if (customer.addresses.length == 1) {
+      // Single address - auto select
+      final address = customer.addresses.first;
+      customerProvider.selectCustomer(customer);
+      customerProvider.selectAddress(address);
+      
+      _searchController.text = customer.displayName;
+      setState(() {
+        _showSearchResults = false;
+      });
+      
+      widget.onCustomerSelected?.call(customer, address);
+      
+    } else if (customer.addresses.length > 1) {
+      // Multiple addresses - show selection dialog
+      _showAddressSelectionDialog(customer);
+    } else {
+      // No addresses - just select customer for name/phone
+      customerProvider.selectCustomer(customer);
+      _searchController.text = customer.displayName;
+      setState(() {
+        _showSearchResults = false;
+      });
+    }
+  }
+
+  void _showAddressSelectionDialog(Customer customer) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Select Address for ${customer.name}'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: customer.addresses.length * 80.0,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: customer.addresses.length,
+            itemBuilder: (context, index) {
+              final address = customer.addresses[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  title: Text(address.address),
+                  subtitle: Text('${address.postcode} • Used ${address.useCount} times'),
+                  trailing: address == customer.mostRecentAddress
+                      ? const Chip(
+                          label: Text('Recent', style: TextStyle(fontSize: 12)),
+                          backgroundColor: Colors.green,
+                          labelStyle: TextStyle(color: Colors.white),
+                        )
+                      : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    
+                    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+                    customerProvider.selectCustomer(customer);
+                    customerProvider.selectAddress(address);
+                    
+                    _searchController.text = customer.displayName;
+                    setState(() {
+                      _showSearchResults = false;
+                    });
+                    
+                    widget.onCustomerSelected?.call(customer, address);
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
     setState(() {
-      _searchResults = results;
-      _isSearching = false;
+      _showSearchResults = false;
     });
+    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+    customerProvider.clearSearchOnly();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.9,
-        height: MediaQuery.of(context).size.height * 0.8,
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return Consumer<CustomerProvider>(
+      builder: (context, customerProvider, child) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(
-              children: [
-                const Icon(Icons.people_outline, size: 28, color: Colors.orange),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Customer Lookup',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-
-            // Search bar
-            TextField(
+            // Search Field
+            TextFormField(
               controller: _searchController,
+              focusNode: _searchFocusNode,
               decoration: InputDecoration(
-                hintText: 'Search by name or last 4 digits of phone...',
+                labelText: 'Search Customer',
+                hintText: widget.hintText ?? 'Enter name or last 4 digits of phone',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                        },
+                        onPressed: _clearSearch,
                       )
                     : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
+                border: const OutlineInputBorder(),
               ),
+              onChanged: _onSearchChanged,
             ),
 
-            const SizedBox(height: 16),
-
-            // Results header
-            Row(
-              children: [
-                Text(
-                  _showingRecent 
-                      ? 'Recent Customers (${_recentCustomers.length})'
-                      : _isSearching
-                          ? 'Searching...'
-                          : 'Search Results (${_searchResults.length})',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                ),
-                if (_showingRecent && _recentCustomers.isNotEmpty) ...[
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      _showFrequentCustomers();
-                    },
-                    child: const Text('Show Frequent'),
-                  ),
-                ],
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Results list
-            Expanded(
-              child: _buildResultsList(),
-            ),
-
-            // Instructions
-            Container(
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(top: 16),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Search by customer name or last 4 digits of phone number to find saved addresses.',
-                      style: TextStyle(fontSize: 12, color: Colors.blue),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // Search Results or Recent Customers
+            if (_showSearchResults) ...[
+              const SizedBox(height: 8),
+              _buildSearchResults(customerProvider),
+            ] else if (widget.showRecentCustomers) ...[
+              const SizedBox(height: 16),
+              _buildRecentCustomers(customerProvider),
+            ],
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResultsList() {
-    final customers = _showingRecent ? _recentCustomers : _searchResults;
-
-    if (_isSearching) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-
-    if (customers.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              _showingRecent ? Icons.history : Icons.search_off,
-              size: 64,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _showingRecent 
-                  ? 'No recent customers found.\nCustomers will appear here after their first order.'
-                  : 'No customers found.\nTry a different search term.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: customers.length,
-      itemBuilder: (context, index) {
-        final customer = customers[index];
-        return _buildCustomerCard(customer);
+        );
       },
     );
   }
 
-  Widget _buildCustomerCard(Customer customer) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Customer header
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        customer.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'Phone: ${customer.phoneNumber}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.orange[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${customer.orderCount} ${customer.orderCount == 1 ? 'order' : 'orders'}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange[700],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatDate(customer.lastUsed),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            if (customer.addresses.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              const Text(
-                'Saved Addresses:',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
+  Widget _buildSearchResults(CustomerProvider customerProvider) {
+    if (customerProvider.isSearching) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              const SizedBox(height: 8),
-              
-              ...customer.addresses.map((address) => Container(
-                margin: const EdgeInsets.only(bottom: 4),
-                child: InkWell(
-                  onTap: () {
-                    widget.onCustomerSelected(customer, address);
-                    Navigator.pop(context);
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green[50],
-                      border: Border.all(color: Colors.green[200]!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.location_on, 
-                               color: Colors.green, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            address,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                        const Icon(Icons.arrow_forward_ios, 
-                               color: Colors.green, size: 16),
-                      ],
-                    ),
-                  ),
-                ),
-              )).toList(),
-            ] else ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.grey, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'No saved addresses for this customer',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ],
+              SizedBox(width: 12),
+              Text('Searching customers...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (customerProvider.searchResults.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              const Icon(Icons.search_off, color: Colors.grey),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'No customers found for "${customerProvider.searchQuery}"',
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ),
             ],
-          ],
+          ),
         ),
+      );
+    }
+
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Text(
+              'Found ${customerProvider.searchResults.length} customers:',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          ...customerProvider.searchResults.map((customer) {
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.orange[100],
+                child: Text(
+                  customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
+                  style: TextStyle(
+                    color: Colors.orange[800],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              title: Text(customer.name),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Phone: ${customer.phoneNumber}'),
+                  if (customer.mostRecentAddress != null)
+                    Text(
+                      customer.mostRecentAddress!.displayAddress,
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  Text(
+                    '${customer.totalOrders} orders • Last: ${_formatDate(customer.lastOrderDate)}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+              trailing: customer.addresses.length > 1
+                  ? Chip(
+                      label: Text('${customer.addresses.length} addresses'),
+                      backgroundColor: Colors.blue[100],
+                    )
+                  : null,
+              onTap: () => _selectCustomer(customer),
+            );
+          }).toList(),
+        ],
       ),
     );
   }
 
-  void _showFrequentCustomers() {
-    setState(() {
-      _recentCustomers = CustomerService.getFrequentCustomers(limit: 10);
-      _showingRecent = true;
-    });
+  Widget _buildRecentCustomers(CustomerProvider customerProvider) {
+    final recentCustomers = customerProvider.getRecentCustomers(limit: 3);
+    
+    if (recentCustomers.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Recent Customers:',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...recentCustomers.map((customer) {
+          return Card(
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.green[100],
+                child: Text(
+                  customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
+                  style: TextStyle(
+                    color: Colors.green[800],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              title: Text(customer.displayName),
+              subtitle: customer.mostRecentAddress != null
+                  ? Text(customer.mostRecentAddress!.displayAddress)
+                  : Text('${customer.totalOrders} orders'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _selectCustomer(customer),
+            ),
+          );
+        }).toList(),
+      ],
+    );
   }
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
+    final difference = now.difference(date).inDays;
+    
+    if (difference == 0) {
       return 'Today';
-    } else if (difference.inDays == 1) {
+    } else if (difference == 1) {
       return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else if (difference.inDays < 30) {
-      return '${(difference.inDays / 7).floor()} weeks ago';
+    } else if (difference < 7) {
+      return '$difference days ago';
     } else {
-      return '${(difference.inDays / 30).floor()} months ago';
+      return '${date.day}/${date.month}/${date.year}';
     }
   }
-}
-
-// Helper function to show the dialog
-Future<void> showCustomerLookupDialog({
-  required BuildContext context,
-  required Function(Customer customer, String selectedAddress) onCustomerSelected,
-}) {
-  return showDialog(
-    context: context,
-    builder: (context) => CustomerLookupDialog(
-      onCustomerSelected: onCustomerSelected,
-    ),
-  );
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../model/customer_model.dart';
-import '../services/customer_service.dart';
+import '../services/customer_provider.dart';
 
 class CustomerManagementScreen extends StatefulWidget {
   const CustomerManagementScreen({Key? key}) : super(key: key);
@@ -10,81 +11,176 @@ class CustomerManagementScreen extends StatefulWidget {
   _CustomerManagementScreenState createState() => _CustomerManagementScreenState();
 }
 
-class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
-  List<Customer> _customers = [];
-  List<Customer> _filteredCustomers = [];
+class _CustomerManagementScreenState extends State<CustomerManagementScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  bool _isLoading = true;
-  String _sortBy = 'recent'; // 'recent', 'frequent', 'name'
+  List<Customer> _filteredCustomers = [];
+  bool _isSearching = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCustomers();
-    _searchController.addListener(_filterCustomers);
+    _tabController = TabController(length: 2, vsync: this);
+    
+    // Load all customers initially
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+      setState(() {
+        _filteredCustomers = customerProvider.getAllCustomers();
+      });
+    });
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadCustomers() async {
+  void _searchCustomers(String query) {
+    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+    
     setState(() {
-      _isLoading = true;
+      _isSearching = query.isNotEmpty;
+      if (query.isEmpty) {
+        _filteredCustomers = customerProvider.getAllCustomers();
+      } else {
+        final allCustomers = customerProvider.getAllCustomers();
+        _filteredCustomers = allCustomers.where((customer) =>
+          customer.name.toLowerCase().contains(query.toLowerCase()) ||
+          customer.phoneNumber.contains(query) ||
+          customer.addresses.any((addr) => 
+            addr.address.toLowerCase().contains(query.toLowerCase()) ||
+            addr.postcode.toLowerCase().contains(query.toLowerCase())
+          )
+        ).toList();
+      }
     });
+  }
 
-    try {
-      final customers = CustomerService.getAllCustomers();
-      setState(() {
-        _customers = customers;
-        _filteredCustomers = customers;
-        _isLoading = false;
-      });
-      _sortCustomers();
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading customers: $e')),
-        );
+  void _clearSearch() {
+    _searchController.clear();
+    _searchCustomers('');
+  }
+
+  Future<void> _deleteCustomer(Customer customer) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Customer'),
+        content: Text('Are you sure you want to delete ${customer.name}? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+        await customerProvider.deleteCustomer(customer.id);
+        
+        // Refresh the list
+        setState(() {
+          _filteredCustomers = customerProvider.getAllCustomers();
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${customer.name} deleted successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting customer: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
 
-  void _filterCustomers() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      if (query.isEmpty) {
-        _filteredCustomers = List.from(_customers);
-      } else {
-        _filteredCustomers = _customers.where((customer) {
-          return customer.name.toLowerCase().contains(query) ||
-                 customer.phoneNumber.contains(query) ||
-                 customer.addresses.any((addr) => addr.toLowerCase().contains(query));
-        }).toList();
-      }
-    });
-    _sortCustomers();
+  void _showCustomerDetails(Customer customer) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(customer.name),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDetailRow('Phone', customer.phoneNumber),
+              _buildDetailRow('Total Orders', '${customer.totalOrders}'),
+              _buildDetailRow('Total Spent', '£${customer.totalSpent.toStringAsFixed(2)}'),
+              _buildDetailRow('Average Order', '£${(customer.totalOrders > 0 ? customer.totalSpent / customer.totalOrders : 0).toStringAsFixed(2)}'),
+              _buildDetailRow('Last Order', _formatDate(customer.lastOrderDate)),
+              
+              const SizedBox(height: 16),
+              const Text(
+                'Addresses:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              
+              if (customer.addresses.isEmpty)
+                const Text('No addresses stored', style: TextStyle(color: Colors.grey))
+              else
+                ...customer.addresses.map((address) => Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    title: Text(address.address),
+                    subtitle: Text('${address.postcode} • Used ${address.useCount} times'),
+                    trailing: Text(
+                      'Last: ${_formatDate(address.lastUsed)}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                )),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _sortCustomers() {
-    setState(() {
-      switch (_sortBy) {
-        case 'recent':
-          _filteredCustomers.sort((a, b) => b.lastUsed.compareTo(a.lastUsed));
-          break;
-        case 'frequent':
-          _filteredCustomers.sort((a, b) => b.orderCount.compareTo(a.orderCount));
-          break;
-        case 'name':
-          _filteredCustomers.sort((a, b) => a.name.compareTo(b.name));
-          break;
-      }
-    });
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
   }
 
   @override
@@ -97,603 +193,385 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadCustomers,
+            onPressed: () {
+              final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+              setState(() {
+                _filteredCustomers = customerProvider.getAllCustomers();
+              });
+            },
             tooltip: 'Refresh',
           ),
           PopupMenuButton<String>(
             onSelected: (value) async {
-              switch (value) {
-                case 'stats':
-                  _showCustomerStats();
-                  break;
-                case 'export':
-                  _exportCustomerData();
-                  break;
-                case 'cleanup':
-                  _showCleanupDialog();
-                  break;
-                case 'clear':
-                  _showClearAllDialog();
-                  break;
+              if (value == 'clear_all') {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Clear All Customers'),
+                    content: const Text('Are you sure you want to delete all customer data? This cannot be undone.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        child: const Text('Clear All'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true) {
+                  try {
+                    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+                    await customerProvider.deleteCustomer(''); // This will clear all
+                    setState(() {
+                      _filteredCustomers = [];
+                    });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('All customers cleared')),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error clearing customers: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                }
               }
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
-                value: 'stats',
-                child: Text('Customer Statistics'),
-              ),
-              const PopupMenuItem(
-                value: 'export',
-                child: Text('Export Data'),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'cleanup',
-                child: Text('Cleanup Old Customers'),
-              ),
-              const PopupMenuItem(
-                value: 'clear',
-                child: Text('Clear All Data', style: TextStyle(color: Colors.red)),
+                value: 'clear_all',
+                child: Text('Clear All Customers', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          tabs: const [
+            Tab(text: 'Customers', icon: Icon(Icons.people)),
+            Tab(text: 'Statistics', icon: Icon(Icons.analytics)),
+          ],
+        ),
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          // Search and filters
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey[50],
-            child: Column(
-              children: [
-                // Search bar
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search customers by name, phone, or address...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
+          _buildCustomersTab(),
+          _buildStatisticsTab(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomersTab() {
+    return Column(
+      children: [
+        // Search Bar
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search customers by name, phone, or address...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: _clearSearch,
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            onChanged: _searchCustomers,
+          ),
+        ),
+
+        // Customer Count
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Text(
+                '${_filteredCustomers.length} customers${_isSearching ? ' found' : ''}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              if (_isSearching) ...[
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: _clearSearch,
+                  child: const Text('Clear'),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        // Customer List
+        Expanded(
+          child: _filteredCustomers.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _isSearching ? Icons.search_off : Icons.people_outline,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _isSearching 
+                            ? 'No customers match your search'
+                            : 'No customers stored yet',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      if (!_isSearching) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Customers will appear here when delivery orders are placed',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[500],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
                   ),
+                )
+              : ListView.builder(
+                  itemCount: _filteredCustomers.length,
+                  itemBuilder: (context, index) {
+                    final customer = _filteredCustomers[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.orange[100],
+                          child: Text(
+                            customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
+                            style: TextStyle(
+                              color: Colors.orange[800],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          customer.name,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Phone: ${customer.phoneNumber}'),
+                            Text('${customer.totalOrders} orders • £${customer.totalSpent.toStringAsFixed(2)} total'),
+                            if (customer.mostRecentAddress != null)
+                              Text(
+                                customer.mostRecentAddress!.displayAddress,
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                          ],
+                        ),
+                        trailing: PopupMenuButton<String>(
+                          onSelected: (value) {
+                            if (value == 'view') {
+                              _showCustomerDetails(customer);
+                            } else if (value == 'delete') {
+                              _deleteCustomer(customer);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'view',
+                              child: Text('View Details'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('Delete', style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                        onTap: () => _showCustomerDetails(customer),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatisticsTab() {
+    return Consumer<CustomerProvider>(
+      builder: (context, customerProvider, child) {
+        final stats = customerProvider.getCustomerStats();
+        final allCustomers = customerProvider.getAllCustomers();
+        
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Summary Cards
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      'Total Customers',
+                      '${stats['totalCustomers']}',
+                      Icons.people,
+                      Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildStatCard(
+                      'Total Orders',
+                      '${stats['totalOrders']}',
+                      Icons.receipt,
+                      Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      'Total Revenue',
+                      '£${stats['totalSpent'].toStringAsFixed(2)}',
+                      Icons.monetization_on,
+                      Colors.orange,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildStatCard(
+                      'Avg Order Value',
+                      '£${stats['averageOrderValue'].toStringAsFixed(2)}',
+                      Icons.analytics,
+                      Colors.purple,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Top Customers
+              if (allCustomers.isNotEmpty) ...[
+                const Text(
+                  'Top Customers by Spending',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
-                
-                // Sort options
-                Row(
-                  children: [
-                    const Text('Sort by: ', style: TextStyle(fontWeight: FontWeight.w500)),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: const Text('Recent'),
-                      selected: _sortBy == 'recent',
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _sortBy = 'recent';
-                          });
-                          _sortCustomers();
-                        }
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: const Text('Frequent'),
-                      selected: _sortBy == 'frequent',
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _sortBy = 'frequent';
-                          });
-                          _sortCustomers();
-                        }
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: const Text('Name'),
-                      selected: _sortBy == 'name',
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _sortBy = 'name';
-                          });
-                          _sortCustomers();
-                        }
-                      },
-                    ),
-                  ],
+                Card(
+                  child: Column(
+                    children: (allCustomers
+                        .where((c) => c.totalSpent > 0)
+                        .toList()
+                          ..sort((a, b) => b.totalSpent.compareTo(a.totalSpent)))
+                        .take(10)
+                        .map((customer) => ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.green[100],
+                                child: Text(
+                                  customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
+                                  style: TextStyle(
+                                    color: Colors.green[800],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              title: Text(customer.name),
+                              subtitle: Text('${customer.totalOrders} orders'),
+                              trailing: Text(
+                                '£${customer.totalSpent.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ))
+                        .toList(),
+                  ),
                 ),
               ],
-            ),
+            ],
           ),
+        );
+      },
+    );
+  }
 
-          // Customer count
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            color: Colors.blue[50],
-            child: Text(
-              '${_filteredCustomers.length} of ${_customers.length} customers',
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Icon(icon, size: 32, color: color),
+            const SizedBox(height: 8),
+            Text(
+              value,
               style: TextStyle(
-                color: Colors.blue[700],
-                fontWeight: FontWeight.w500,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
               ),
             ),
-          ),
-
-          // Customer list
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredCustomers.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        itemCount: _filteredCustomers.length,
-                        itemBuilder: (context, index) {
-                          final customer = _filteredCustomers[index];
-                          return _buildCustomerCard(customer);
-                        },
-                      ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            _searchController.text.isNotEmpty ? Icons.search_off : Icons.people_outline,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _searchController.text.isNotEmpty
-                ? 'No customers found matching your search'
-                : 'No customers saved yet',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _searchController.text.isNotEmpty
-                ? 'Try a different search term'
-                : 'Customers will appear here after their first order',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCustomerCard(Customer customer) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: ExpansionTile(
-        leading: CircleAvatar(
-          backgroundColor: Colors.orange[100],
-          child: Text(
-            customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.orange[700],
-            ),
-          ),
-        ),
-        title: Text(
-          customer.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Phone: ${customer.phoneNumber}'),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: customer.orderCount > 1 ? Colors.green[100] : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${customer.orderCount} ${customer.orderCount == 1 ? 'order' : 'orders'}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: customer.orderCount > 1 ? Colors.green[700] : Colors.grey[600],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Last order: ${_formatDate(customer.lastUsed)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Customer details
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Customer Since: ${DateFormat('dd/MM/yyyy').format(customer.createdAt)}',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                          if (customer.postcode?.isNotEmpty == true)
-                            Text(
-                              'Postcode: ${customer.postcode}',
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                        ],
-                      ),
-                    ),
-                    // Action buttons
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          onPressed: () => _editCustomer(customer),
-                          tooltip: 'Edit Customer',
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          onPressed: () => _deleteCustomer(customer),
-                          tooltip: 'Delete Customer',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                
-                // Addresses
-                if (customer.addresses.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Saved Addresses:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  ...customer.addresses.map((address) => Container(
-                    margin: const EdgeInsets.only(bottom: 4),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(address, style: const TextStyle(fontSize: 14))),
-                      ],
-                    ),
-                  )).toList(),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _editCustomer(Customer customer) {
-    // Show edit dialog
-    showDialog(
-      context: context,
-      builder: (context) => _CustomerEditDialog(
-        customer: customer,
-        onSaved: () {
-          _loadCustomers();
-        },
-      ),
-    );
-  }
-
-  void _deleteCustomer(Customer customer) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Customer'),
-        content: Text('Are you sure you want to delete ${customer.name}? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              try {
-                await CustomerService.deleteCustomer(customer.id);
-                Navigator.pop(context);
-                _loadCustomers();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${customer.name} deleted')),
-                  );
-                }
-              } catch (e) {
-                Navigator.pop(context);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error deleting customer: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCustomerStats() {
-    final stats = CustomerService.getCustomerStats();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Customer Statistics'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Total Customers: ${stats['totalCustomers'] ?? 0}'),
-            Text('Repeat Customers: ${stats['repeatCustomers'] ?? 0}'),
-            Text('Total Orders: ${stats['totalOrders'] ?? 0}'),
-            Text('Average Orders per Customer: ${(stats['averageOrdersPerCustomer'] ?? 0.0).toStringAsFixed(1)}'),
-            Text('Repeat Customer Rate: ${(stats['repeatCustomerRate'] ?? 0.0).toStringAsFixed(1)}%'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _exportCustomerData() {
-    final data = CustomerService.exportCustomerData();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Export Customer Data'),
-        content: Text('Customer data exported successfully.\n\nTotal customers: ${data['totalCustomers']}'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCleanupDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cleanup Old Customers'),
-        content: const Text('This will remove customers who have only ordered once and haven\'t ordered in the last 6 months.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              try {
-                await CustomerService.cleanupOldCustomers();
-                Navigator.pop(context);
-                _loadCustomers();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Old customers cleaned up')),
-                  );
-                }
-              } catch (e) {
-                Navigator.pop(context);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error during cleanup: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Cleanup'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showClearAllDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear All Customer Data'),
-        content: const Text('Are you sure you want to delete ALL customer data? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              try {
-                await CustomerService.clearAllCustomers();
-                Navigator.pop(context);
-                _loadCustomers();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('All customer data cleared')),
-                  );
-                }
-              } catch (e) {
-                Navigator.pop(context);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error clearing data: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Clear All', style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
     );
   }
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
+    final difference = now.difference(date).inDays;
+    
+    if (difference == 0) {
       return 'Today';
-    } else if (difference.inDays == 1) {
+    } else if (difference == 1) {
       return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else if (difference.inDays < 30) {
-      return '${(difference.inDays / 7).floor()} weeks ago';
+    } else if (difference < 7) {
+      return '$difference days ago';
     } else {
       return DateFormat('dd/MM/yyyy').format(date);
     }
-  }
-}
-
-// Simple edit dialog for customer details
-class _CustomerEditDialog extends StatefulWidget {
-  final Customer customer;
-  final VoidCallback onSaved;
-
-  const _CustomerEditDialog({
-    required this.customer,
-    required this.onSaved,
-  });
-
-  @override
-  _CustomerEditDialogState createState() => _CustomerEditDialogState();
-}
-
-class _CustomerEditDialogState extends State<_CustomerEditDialog> {
-  late final TextEditingController _nameController;
-  late final TextEditingController _phoneController;
-  late final TextEditingController _postcodeController;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController(text: widget.customer.name);
-    _phoneController = TextEditingController(text: widget.customer.phoneNumber);
-    _postcodeController = TextEditingController(text: widget.customer.postcode ?? '');
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _postcodeController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Edit Customer'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Name'),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _phoneController,
-            decoration: const InputDecoration(labelText: 'Phone Number'),
-            keyboardType: TextInputType.phone,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _postcodeController,
-            decoration: const InputDecoration(labelText: 'Postcode'),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () async {
-            try {
-              widget.customer.name = _nameController.text;
-              widget.customer.phoneNumber = _phoneController.text;
-              widget.customer.postcode = _postcodeController.text.isEmpty ? null : _postcodeController.text;
-              
-              await CustomerService.updateCustomer(widget.customer);
-              Navigator.pop(context);
-              widget.onSaved();
-              
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Customer updated')),
-                );
-              }
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error updating customer: $e')),
-                );
-              }
-            }
-          },
-          child: const Text('Save'),
-        ),
-      ],
-    );
   }
 }

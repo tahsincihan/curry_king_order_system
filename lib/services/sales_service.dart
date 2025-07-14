@@ -4,7 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../model/sales_model.dart';
 import '../model/order_model.dart';
-import '../services/customer_service.dart';
+import 'customer_service.dart';
 
 class SalesService {
   static const String _salesBoxName = 'daily_sales';
@@ -56,19 +56,9 @@ class SalesService {
           Hive.registerAdapter(SaleTransactionAdapter());
           print('✓ SaleTransactionAdapter registered');
         }
-        // Customer adapter is registered in CustomerService
       } catch (e) {
         print('Error registering adapters: $e');
         // Continue anyway - adapters might already be registered
-      }
-
-      // Initialize customer service first
-      try {
-        await CustomerService.initialize();
-        print('✓ CustomerService initialized successfully');
-      } catch (e) {
-        print('⚠ Warning: CustomerService initialization failed: $e');
-        // Continue without customer service
       }
 
       // Open the sales box with retry logic
@@ -110,6 +100,15 @@ class SalesService {
       } catch (e) {
         print('Warning: Old data cleanup failed: $e');
         // Continue anyway
+      }
+
+      // Initialize customer service as well
+      try {
+        await CustomerService.initialize();
+        print('✓ Customer service initialized from sales service');
+      } catch (e) {
+        print('Warning: Customer service initialization failed: $e');
+        // Continue anyway - customer features will be disabled
       }
 
       _isInitialized = true;
@@ -180,19 +179,6 @@ class SalesService {
       // Add transaction to today's sales
       todaySales.addTransaction(transaction);
 
-      // Save customer data if it's a takeaway order with customer info
-      if (order.orderType == 'takeaway' && 
-          order.customerInfo.name?.isNotEmpty == true && 
-          order.customerInfo.phoneNumber?.isNotEmpty == true) {
-        try {
-          await CustomerService.saveCustomerFromOrder(order);
-          print('✓ Customer data saved');
-        } catch (e) {
-          print('⚠ Warning: Failed to save customer data: $e');
-          // Continue with sale even if customer save fails
-        }
-      }
-
       // Save to Hive with retry logic
       int retryCount = 0;
       const maxRetries = 3;
@@ -212,6 +198,19 @@ class SalesService {
           
           await Future.delayed(Duration(milliseconds: 100 * retryCount));
         }
+      }
+
+      // Save customer information if it's a delivery order
+      try {
+        if (CustomerService.isInitialized) {
+          await CustomerService.saveCustomerFromOrder(order);
+          print('Customer information processed for order ${order.id}');
+        } else {
+          print('CustomerService not initialized, skipping customer save');
+        }
+      } catch (e) {
+        print('Warning: Failed to save customer information: $e');
+        // Don't rethrow - sale should still succeed even if customer save fails
       }
       
     } catch (e) {
@@ -318,14 +317,13 @@ class SalesService {
 
     try {
       final todayKey = _getTodayKey();
-      final yesterdayKey = _getYesterdayKey();
 
-      // Find all keys that are NOT today's or yesterday's key
+      // Find all keys that are NOT today's key
       final keysToDelete = _salesBox!.keys
-          .where((key) => key.toString() != todayKey && key.toString() != yesterdayKey)
+          .where((key) => key.toString() != todayKey)
           .toList();
 
-      // Delete all records except today's and yesterday's
+      // Delete all records except today's
       for (final key in keysToDelete) {
         try {
           await _salesBox!.delete(key);

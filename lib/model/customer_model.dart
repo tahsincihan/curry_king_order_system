@@ -1,6 +1,4 @@
-
 import 'package:hive/hive.dart';
-import 'order_model.dart';
 
 @HiveType(typeId: 2)
 class Customer extends HiveObject {
@@ -14,82 +12,107 @@ class Customer extends HiveObject {
   String phoneNumber;
 
   @HiveField(3)
-  List<String> addresses; // Multiple addresses for same customer
+  List<CustomerAddress> addresses;
 
   @HiveField(4)
-  String? postcode;
+  DateTime lastOrderDate;
 
   @HiveField(5)
-  DateTime createdAt;
+  int totalOrders;
 
   @HiveField(6)
-  DateTime lastUsed;
-
-  @HiveField(7)
-  int orderCount; // How many times this customer has ordered
+  double totalSpent;
 
   Customer({
     required this.id,
     required this.name,
     required this.phoneNumber,
-    required this.addresses,
-    this.postcode,
-    required this.createdAt,
-    required this.lastUsed,
-    this.orderCount = 0,
+    this.addresses = const [],
+    required this.lastOrderDate,
+    this.totalOrders = 0,
+    this.totalSpent = 0.0,
   });
 
-  // Helper getters
-  String get primaryAddress => addresses.isNotEmpty ? addresses.first : '';
-  String get phoneLastFour => phoneNumber.length >= 4 ? phoneNumber.substring(phoneNumber.length - 4) : phoneNumber;
-  
-  // Search helpers
-  bool matchesSearch(String query) {
-    final lowerQuery = query.toLowerCase();
-    return name.toLowerCase().contains(lowerQuery) ||
-           phoneNumber.contains(query) ||
-           phoneLastFour.contains(query);
+  // Helper method to get the most recent address
+  CustomerAddress? get mostRecentAddress {
+    if (addresses.isEmpty) return null;
+    return addresses.reduce((a, b) => 
+      a.lastUsed.isAfter(b.lastUsed) ? a : b);
   }
 
-  // Update last used time and increment order count
-  void recordOrder() {
-    lastUsed = DateTime.now();
-    orderCount++;
-    save(); // Save to Hive
+  // Helper method to get last 4 digits of phone
+  String get phoneLastFour {
+    if (phoneNumber.length >= 4) {
+      return phoneNumber.substring(phoneNumber.length - 4);
+    }
+    return phoneNumber;
   }
 
-  // Add a new address if it doesn't exist
-  void addAddress(String address) {
-    if (!addresses.contains(address)) {
-      addresses.add(address);
-      save();
+  // Helper method to format display name
+  String get displayName {
+    return '$name (${phoneLastFour})';
+  }
+
+  // Add or update an address
+  void addOrUpdateAddress(String address, String postcode) {
+    // Check if this address already exists
+    final existingIndex = addresses.indexWhere(
+      (addr) => addr.address.toLowerCase() == address.toLowerCase() && 
+                addr.postcode.toLowerCase() == postcode.toLowerCase()
+    );
+
+    if (existingIndex != -1) {
+      // Update existing address
+      addresses[existingIndex].lastUsed = DateTime.now();
+      addresses[existingIndex].useCount++;
+    } else {
+      // Add new address
+      addresses.add(CustomerAddress(
+        address: address,
+        postcode: postcode,
+        lastUsed: DateTime.now(),
+        useCount: 1,
+      ));
+    }
+
+    // Keep only the 3 most recent addresses to avoid clutter
+    if (addresses.length > 3) {
+      addresses.sort((a, b) => b.lastUsed.compareTo(a.lastUsed));
+      addresses = addresses.take(3).toList();
     }
   }
 
-  // Create from CustomerInfo (from order)
-  static Customer fromCustomerInfo(CustomerInfo customerInfo) {
-    final now = DateTime.now();
-    return Customer(
-      id: '${customerInfo.name?.replaceAll(' ', '_').toLowerCase()}_${customerInfo.phoneNumber}',
-      name: customerInfo.name ?? '',
-      phoneNumber: customerInfo.phoneNumber ?? '',
-      addresses: customerInfo.address != null ? [customerInfo.address!] : [],
-      postcode: customerInfo.postcode,
-      createdAt: now,
-      lastUsed: now,
-      orderCount: 1,
-    );
+  // Update order statistics
+  void updateOrderStats(double orderAmount) {
+    totalOrders++;
+    totalSpent += orderAmount;
+    lastOrderDate = DateTime.now();
   }
+}
 
-  // Convert to CustomerInfo for orders
-  CustomerInfo toCustomerInfo({String? selectedAddress, bool isDelivery = false}) {
-    return CustomerInfo(
-      name: name,
-      phoneNumber: phoneNumber,
-      address: selectedAddress ?? primaryAddress,
-      postcode: postcode,
-      isDelivery: isDelivery,
-    );
+@HiveType(typeId: 3)
+class CustomerAddress extends HiveObject {
+  @HiveField(0)
+  String address;
+
+  @HiveField(1)
+  String postcode;
+
+  @HiveField(2)
+  DateTime lastUsed;
+
+  @HiveField(3)
+  int useCount;
+
+  CustomerAddress({
+    required this.address,
+    required this.postcode,
+    required this.lastUsed,
+    this.useCount = 1,
+  });
+
+  String get displayAddress {
+    return '$address, $postcode';
   }
 }
 
@@ -108,18 +131,17 @@ class CustomerAdapter extends TypeAdapter<Customer> {
       id: fields[0] as String,
       name: fields[1] as String,
       phoneNumber: fields[2] as String,
-      addresses: (fields[3] as List?)?.cast<String>() ?? [],
-      postcode: fields[4] as String?,
-      createdAt: fields[5] as DateTime,
-      lastUsed: fields[6] as DateTime,
-      orderCount: fields[7] as int? ?? 0,
+      addresses: (fields[3] as List?)?.cast<CustomerAddress>() ?? [],
+      lastOrderDate: fields[4] as DateTime,
+      totalOrders: fields[5] as int? ?? 0,
+      totalSpent: fields[6] as double? ?? 0.0,
     );
   }
 
   @override
   void write(BinaryWriter writer, Customer obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -129,13 +151,11 @@ class CustomerAdapter extends TypeAdapter<Customer> {
       ..writeByte(3)
       ..write(obj.addresses)
       ..writeByte(4)
-      ..write(obj.postcode)
+      ..write(obj.lastOrderDate)
       ..writeByte(5)
-      ..write(obj.createdAt)
+      ..write(obj.totalOrders)
       ..writeByte(6)
-      ..write(obj.lastUsed)
-      ..writeByte(7)
-      ..write(obj.orderCount);
+      ..write(obj.totalSpent);
   }
 
   @override
@@ -145,6 +165,50 @@ class CustomerAdapter extends TypeAdapter<Customer> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CustomerAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+// Manual Adapter for CustomerAddress
+class CustomerAddressAdapter extends TypeAdapter<CustomerAddress> {
+  @override
+  final int typeId = 3;
+
+  @override
+  CustomerAddress read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return CustomerAddress(
+      address: fields[0] as String,
+      postcode: fields[1] as String,
+      lastUsed: fields[2] as DateTime,
+      useCount: fields[3] as int? ?? 1,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, CustomerAddress obj) {
+    writer
+      ..writeByte(4)
+      ..writeByte(0)
+      ..write(obj.address)
+      ..writeByte(1)
+      ..write(obj.postcode)
+      ..writeByte(2)
+      ..write(obj.lastUsed)
+      ..writeByte(3)
+      ..write(obj.useCount);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CustomerAddressAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

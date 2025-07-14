@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../model/order_model.dart';
+import '../services/customer_service.dart'; // NEW: Import customer service
 
 class OrderProvider extends ChangeNotifier {
   // State for the order being currently built
@@ -61,6 +62,22 @@ class OrderProvider extends ChangeNotifier {
     if (postcode != null) _customerInfo.postcode = postcode;
     if (phoneNumber != null) _customerInfo.phoneNumber = phoneNumber;
     if (isDelivery != null) _customerInfo.isDelivery = isDelivery;
+    notifyListeners();
+  }
+
+  // NEW: Update customer info from customer lookup
+  void updateCustomerInfoFromLookup({
+    required String name,
+    required String phoneNumber,
+    String? address,
+    String? postcode,
+    bool isDelivery = false,
+  }) {
+    _customerInfo.name = name;
+    _customerInfo.phoneNumber = phoneNumber;
+    _customerInfo.address = address;
+    _customerInfo.postcode = postcode;
+    _customerInfo.isDelivery = isDelivery;
     notifyListeners();
   }
 
@@ -160,15 +177,35 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  // NEW: Method to remove an order from the live list once completed
+  // UPDATED: Method to remove an order from the live list once completed
+  // Now also saves customer information for delivery orders
   Order? completeOrder(String orderId) {
     int orderIndex = _liveOrders.indexWhere((order) => order.id == orderId);
     if (orderIndex != -1) {
       final completedOrder = _liveOrders.removeAt(orderIndex);
+      
+      // NEW: Save customer information for future orders
+      _saveCustomerFromOrder(completedOrder);
+      
       notifyListeners();
       return completedOrder;
     }
     return null;
+  }
+
+  // NEW: Private method to save customer information
+  Future<void> _saveCustomerFromOrder(Order order) async {
+    try {
+      if (CustomerService.isInitialized) {
+        await CustomerService.saveCustomerFromOrder(order);
+        print('Customer information saved for order ${order.id}');
+      } else {
+        print('Warning: CustomerService not initialized, skipping customer save');
+      }
+    } catch (e) {
+      print('Error saving customer from order: $e');
+      // Don't rethrow - this shouldn't break order completion
+    }
   }
 
   void clearOrder() {
