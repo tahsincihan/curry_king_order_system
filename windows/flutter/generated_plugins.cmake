@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
   desktop_window
+  nsd_windows
   printing
   screen_retriever
   window_manager
