@@ -39,6 +39,10 @@ class UnifiedPrinterService {
     // Get network/WiFi printers
     try {
       final networkPrinters = await Printing.listPrinters();
+      if (networkPrinters.isEmpty) {
+        print(
+            'No network printers found by system discovery. If expected, ensure printer is installed and discoverable on network.'); // Added diagnostic message
+      }
       for (var printer in networkPrinters) {
         allPrinters.add(UnifiedPrinter(
           name: printer.name,
@@ -449,7 +453,7 @@ class UnifiedPrinterService {
         content: 'Date: ${_formatDateTime(order.orderTime)}',
         weight: 0,
         align: LineText.ALIGN_LEFT,
-        linefeed: 1));
+        linefeed: 2));
 
     lines.add(LineText(
         type: LineText.TYPE_TEXT,
