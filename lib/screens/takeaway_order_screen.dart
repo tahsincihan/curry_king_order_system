@@ -38,18 +38,19 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize postcode service with safe API key handling
     final apiKey = dotenv.env['GETADDRESS_API_KEY'];
     postcodeService = PostcodeService(apiKey);
-    
+
     // Log API key status for debugging
     if (apiKey == null || apiKey.isEmpty) {
-      print('Warning: GETADDRESS_API_KEY not found in .env file. Using mock addresses.');
+      print(
+          'Warning: GETADDRESS_API_KEY not found in .env file. Using mock addresses.');
     } else {
       print('✓ GetAddress API key loaded successfully');
     }
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<OrderProvider>(context, listen: false)
           .setOrderType('takeaway');
@@ -123,8 +124,9 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
     });
 
     try {
-      final addresses = await postcodeService.getAddresses(postcodeController.text);
-      
+      final addresses =
+          await postcodeService.getAddresses(postcodeController.text);
+
       setState(() {
         foundAddresses = addresses;
         isLookingUp = false;
@@ -132,10 +134,10 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
 
       if (addresses.isEmpty) {
         _showSnackBar('No addresses found for this postcode');
-      } else if (addresses.length == 1 && addresses.first.contains('Sample Town')) {
+      } else if (addresses.length == 1 &&
+          addresses.first.contains('Sample Town')) {
         _showSnackBar('Using mock addresses - API service unavailable');
       }
-      
     } catch (e) {
       setState(() {
         isLookingUp = false;
@@ -397,7 +399,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
 
   Widget _buildSearchResults() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -456,10 +458,18 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                       ],
                     ),
                   )
-                : ListView.builder(
+                : GridView.builder(
+                    padding: const EdgeInsets.all(8),
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
                     itemCount: searchResults.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 400,
+                      childAspectRatio: 2.8,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
                     itemBuilder: (context, index) {
                       MenuItem item = searchResults[index];
                       return _buildMenuItem(item, highlightSearch: true);
@@ -508,8 +518,16 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                     child: Text('No items in this category',
                         style:
                             TextStyle(color: Colors.grey[600], fontSize: 16)))
-                : ListView.builder(
+                : GridView.builder(
+                    padding: const EdgeInsets.all(8.0),
                     itemCount: items.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 400,
+                      childAspectRatio: 2.8,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
                     itemBuilder: (context, index) {
                       MenuItem item = items[index];
                       return _buildMenuItem(item);
@@ -578,68 +596,51 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Item name
-                    _highlightText(
-                      item.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    // Category (always shown in search results)
-                    if (showSearch || highlightSearch) ...[
-                      const SizedBox(height: 2),
-                      _highlightText(
-                        item.category,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-
-                    // Description if available
-                    if (item.description != null) ...[
-                      const SizedBox(height: 4),
-                      _highlightText(
-                        item.description!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 4),
-
-                    // Price - Show takeaway price
-                    Row(
-                      children: [
-                        Text(
-                          '£${item.getTakeawayPrice().toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange[700],
-                          ),
-                        ),
-                        if (item.takeawayPrice != null &&
-                            item.takeawayPrice != item.price) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            '(Takeaway)',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[500],
-                              fontStyle: FontStyle.italic,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _highlightText(
+                            item.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
+                          if (showSearch || highlightSearch) ...[
+                            const SizedBox(height: 2),
+                            _highlightText(
+                              item.category,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                          if (item.description != null) ...[
+                            const SizedBox(height: 4),
+                            Flexible(
+                              child: _highlightText(
+                                item.description!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
+                    ),
+                    Text(
+                      '£${item.getTakeawayPrice().toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange[700],
+                      ),
                     ),
                   ],
                 ),
@@ -971,7 +972,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                             // Update the controllers with selected customer data
                             nameController.text = customer.name;
                             phoneController.text = customer.phoneNumber;
-                            
+
                             // Update order provider
                             orderProvider.updateCustomerInfoFromLookup(
                               name: customer.name,
@@ -980,7 +981,7 @@ class _TakeawayOrderScreenState extends State<TakeawayOrderScreen> {
                               postcode: address.postcode,
                               isDelivery: orderProvider.customerInfo.isDelivery,
                             );
-                            
+
                             // Auto-fill postcode controller if delivery
                             if (orderProvider.customerInfo.isDelivery) {
                               postcodeController.text = address.postcode;
