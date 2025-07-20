@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/order_provider.dart';
+import '../services/unified_printer_service.dart'; // ADD THIS IMPORT
 import '../model/order_model.dart';
 
 class OrderSummaryScreen extends StatelessWidget {
@@ -254,21 +255,112 @@ class OrderSummaryScreen extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Place the order into the live list in the provider
-                      orderProvider.placeOrder();
+                    onPressed: () async {
+                      // Show loading indicator while processing
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const Center(
+                          child: Card(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 16),
+                                  Text('Placing order and printing...'),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
 
-                      // Navigate back to the home screen to see the live order dashboard
-                      Navigator.of(context).popUntil((route) => route.isFirst);
+                      try {
+                        // Place the order into the live list in the provider
+                        orderProvider.placeOrder();
+
+                        // Try to print the order automatically
+                        try {
+                          await UnifiedPrinterService.printOrder(order);
+                          print('Order printed successfully');
+                        } catch (printError) {
+                          print('Print error: $printError');
+                          // Don't fail the order placement if printing fails
+                          // Just show a warning to the user
+                          if (context.mounted) {
+                            Navigator.pop(context); // Close loading dialog
+
+                            // Show print error dialog but allow order to continue
+                            await showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Order Placed'),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('✅ Order placed successfully!'),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                        '⚠️ Printing failed: ${printError.toString()}'),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                        'You can reprint from the live orders screen.'),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        }
+
+                        // Navigate back to the home screen to see the live order dashboard
+                        if (context.mounted) {
+                          Navigator.pop(
+                              context); // Close loading dialog if still open
+                          Navigator.of(context)
+                              .popUntil((route) => route.isFirst);
+
+                          // Show success message
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Order placed and printed successfully!'),
+                              backgroundColor: Colors.green,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        // Handle order placement errors
+                        if (context.mounted) {
+                          Navigator.pop(context); // Close loading dialog
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error placing order: $e'),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green[600],
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    icon: const Icon(Icons.kitchen),
+                    icon: const Icon(Icons.print),
                     label: const Text(
-                      'Place Order',
+                      'Place & Print Order',
                       style:
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
