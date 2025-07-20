@@ -323,7 +323,7 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
 
   Widget _buildSearchResults() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -382,10 +382,18 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                       ],
                     ),
                   )
-                : ListView.builder(
+                : GridView.builder(
+                    padding: const EdgeInsets.all(8),
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
                     itemCount: searchResults.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 400,
+                      childAspectRatio: 2.8,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
                     itemBuilder: (context, index) {
                       MenuItem item = searchResults[index];
                       return _buildMenuItem(item, highlightSearch: true);
@@ -434,8 +442,16 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
                     child: Text('No items in this category',
                         style:
                             TextStyle(color: Colors.grey[600], fontSize: 16)))
-                : ListView.builder(
+                : GridView.builder(
+                    padding: const EdgeInsets.all(8.0),
                     itemCount: items.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 400,
+                      childAspectRatio: 2.8,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
                     itemBuilder: (context, index) {
                       MenuItem item = items[index];
                       return _buildMenuItem(item);
@@ -504,45 +520,44 @@ class _DineInOrderScreenState extends State<DineInOrderScreen> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Item name
-                    _highlightText(
-                      item.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _highlightText(
+                            item.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (showSearch || highlightSearch) ...[
+                            const SizedBox(height: 2),
+                            _highlightText(
+                              item.category,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                          if (item.description != null) ...[
+                            const SizedBox(height: 4),
+                            Flexible(
+                              child: _highlightText(
+                                item.description!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-
-                    // Category (always shown in search results)
-                    if (showSearch || highlightSearch) ...[
-                      const SizedBox(height: 2),
-                      _highlightText(
-                        item.category,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-
-                    // Description if available
-                    if (item.description != null) ...[
-                      const SizedBox(height: 4),
-                      _highlightText(
-                        item.description!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 4),
-
-                    // Price - Show dine-in price
                     Text(
                       '£${item.getDineInPrice().toStringAsFixed(2)}',
                       style: TextStyle(

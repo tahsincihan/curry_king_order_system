@@ -16,12 +16,12 @@ class TouchPOSTheme {
     return ThemeData(
       primarySwatch: Colors.orange,
       visualDensity: VisualDensity.comfortable, // More space for touch
-      
+
       // Touch-optimized app bar
       appBarTheme: const AppBarTheme(
-        toolbarHeight: 80,
+        toolbarHeight: 90,
         titleTextStyle: TextStyle(
-          fontSize: 24,
+          fontSize: 26,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
@@ -30,10 +30,11 @@ class TouchPOSTheme {
       // Large, touch-friendly buttons
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          minimumSize: const Size(preferredTouchTarget, preferredTouchTarget),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          minimumSize:
+              const Size(preferredTouchTarget, preferredTouchTarget + 10),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
           textStyle: const TextStyle(
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
           shape: RoundedRectangleBorder(
@@ -47,10 +48,11 @@ class TouchPOSTheme {
       // Touch-friendly outlined buttons
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(preferredTouchTarget, preferredTouchTarget),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          minimumSize:
+              const Size(preferredTouchTarget, preferredTouchTarget + 10),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           textStyle: const TextStyle(
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
           shape: RoundedRectangleBorder(
@@ -63,10 +65,11 @@ class TouchPOSTheme {
       // Large text buttons
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          minimumSize: const Size(preferredTouchTarget, preferredTouchTarget),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          minimumSize:
+              const Size(preferredTouchTarget, preferredTouchTarget + 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           textStyle: const TextStyle(
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -75,16 +78,17 @@ class TouchPOSTheme {
       // Touch-friendly icon buttons
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          minimumSize: const Size(preferredTouchTarget, preferredTouchTarget),
-          padding: const EdgeInsets.all(12),
-          iconSize: 28,
+          minimumSize:
+              const Size(preferredTouchTarget, preferredTouchTarget + 10),
+          padding: const EdgeInsets.all(14),
+          iconSize: 30,
         ),
       ),
 
       // Larger cards with touch-friendly elevation
       cardTheme: CardTheme(
-        elevation: 6,
-        margin: const EdgeInsets.all(touchMargin),
+        elevation: 8,
+        margin: const EdgeInsets.all(touchMargin + 2),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -92,37 +96,38 @@ class TouchPOSTheme {
 
       // Touch-optimized list tiles
       listTileTheme: const ListTileThemeData(
-        minVerticalPadding: 16,
-        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        minVerticalPadding: 18,
+        contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         dense: false,
       ),
 
       // Large, readable text
       textTheme: const TextTheme(
         // Headlines
-        headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-        headlineMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-        headlineSmall: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        
+        headlineLarge: TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
+        headlineMedium: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+        headlineSmall: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+
         // Titles
-        titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-        titleMedium: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        titleSmall: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        
+        titleLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+        titleMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        titleSmall: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+
         // Body text
-        bodyLarge: TextStyle(fontSize: 18),
-        bodyMedium: TextStyle(fontSize: 16),
-        bodySmall: TextStyle(fontSize: 14),
-        
+        bodyLarge: TextStyle(fontSize: 20),
+        bodyMedium: TextStyle(fontSize: 18),
+        bodySmall: TextStyle(fontSize: 16),
+
         // Labels
-        labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        labelMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        labelLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        labelMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        labelSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       ),
 
       // Touch-friendly input decoration
       inputDecorationTheme: InputDecorationTheme(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(width: 2),
@@ -135,14 +140,14 @@ class TouchPOSTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.orange, width: 2),
         ),
-        labelStyle: const TextStyle(fontSize: 16),
-        hintStyle: TextStyle(fontSize: 16, color: Colors.grey[600]),
+        labelStyle: const TextStyle(fontSize: 18),
+        hintStyle: TextStyle(fontSize: 18, color: Colors.grey[600]),
       ),
 
       // Touch-friendly chips
       chipTheme: ChipThemeData(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -155,12 +160,12 @@ class TouchPOSTheme {
           borderRadius: BorderRadius.circular(20),
         ),
         titleTextStyle: const TextStyle(
-          fontSize: 24,
+          fontSize: 26,
           fontWeight: FontWeight.bold,
           color: Colors.black87,
         ),
         contentTextStyle: const TextStyle(
-          fontSize: 16,
+          fontSize: 18,
           color: Colors.black87,
         ),
       ),
@@ -175,9 +180,10 @@ class TouchPOSTheme {
 
       // Touch-optimized tab bar
       tabBarTheme: const TabBarTheme(
-        labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
-        labelPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        labelStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        unselectedLabelStyle:
+            TextStyle(fontSize: 18, fontWeight: FontWeight.normal),
+        labelPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       ),
 
       // Touch-friendly switches and checkboxes
@@ -195,58 +201,62 @@ class TouchPOSTheme {
 
       // Touch-friendly sliders
       sliderTheme: const SliderThemeData(
-        thumbShape: RoundSliderThumbShape(enabledThumbRadius: 12),
-        trackHeight: 6,
-        overlayShape: RoundSliderOverlayShape(overlayRadius: 24),
+        thumbShape: RoundSliderThumbShape(enabledThumbRadius: 14),
+        trackHeight: 8,
+        overlayShape: RoundSliderOverlayShape(overlayRadius: 28),
       ),
     );
   }
 
   // Predefined button sizes for different use cases
   static ButtonStyle get primaryOrderButton => ElevatedButton.styleFrom(
-    minimumSize: const Size(200, extraLargeTouchTarget),
-    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-    textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-    backgroundColor: Colors.orange[600],
-    foregroundColor: Colors.white,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-    elevation: 6,
-  );
+        minimumSize: const Size(220, extraLargeTouchTarget + 10),
+        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
+        textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        backgroundColor: Colors.orange[600],
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 6,
+      );
 
   static ButtonStyle get secondaryButton => ElevatedButton.styleFrom(
-    minimumSize: const Size(150, largeTouchTarget),
-    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-    backgroundColor: Colors.grey[100],
-    foregroundColor: Colors.grey[800],
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    elevation: 2,
-  );
+        minimumSize: const Size(170, largeTouchTarget + 10),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        backgroundColor: Colors.grey[100],
+        foregroundColor: Colors.grey[800],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 2,
+      );
 
   static ButtonStyle get menuItemButton => ElevatedButton.styleFrom(
-    minimumSize: const Size(double.infinity, largeTouchTarget),
-    padding: const EdgeInsets.all(16),
-    alignment: Alignment.centerLeft,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    elevation: 2,
-  );
+        minimumSize: const Size(double.infinity, largeTouchTarget + 10),
+        padding: const EdgeInsets.all(18),
+        alignment: Alignment.centerLeft,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 2,
+      );
 
   static ButtonStyle get numpadButton => ElevatedButton.styleFrom(
-    minimumSize: const Size(extraLargeTouchTarget, extraLargeTouchTarget),
-    padding: EdgeInsets.zero,
-    textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    elevation: 4,
-  );
+        minimumSize:
+            const Size(extraLargeTouchTarget + 10, extraLargeTouchTarget + 10),
+        padding: EdgeInsets.zero,
+        textStyle: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 4,
+      );
 
   // Touch-friendly spacing helpers
   static const EdgeInsets touchPaddingAll = EdgeInsets.all(touchPadding);
-  static const EdgeInsets touchPaddingHorizontal = EdgeInsets.symmetric(horizontal: touchPadding);
-  static const EdgeInsets touchPaddingVertical = EdgeInsets.symmetric(vertical: touchPadding);
-  
-  static const SizedBox touchSpacingSmall = SizedBox(height: 12, width: 12);
-  static const SizedBox touchSpacingMedium = SizedBox(height: touchSpacing, width: touchSpacing);
-  static const SizedBox touchSpacingLarge = SizedBox(height: 32, width: 32);
+  static const EdgeInsets touchPaddingHorizontal =
+      EdgeInsets.symmetric(horizontal: touchPadding);
+  static const EdgeInsets touchPaddingVertical =
+      EdgeInsets.symmetric(vertical: touchPadding);
+
+  static const SizedBox touchSpacingSmall = SizedBox(height: 14, width: 14);
+  static const SizedBox touchSpacingMedium =
+      SizedBox(height: touchSpacing + 4, width: touchSpacing + 4);
+  static const SizedBox touchSpacingLarge = SizedBox(height: 36, width: 36);
 
   // Touch feedback colors
   static const Color touchHighlight = Color(0x40FF9800);

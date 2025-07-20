@@ -178,124 +178,253 @@ class _SalesScreenState extends State<SalesScreen>
 
   Widget _buildOverviewTab(SalesProvider salesProvider) {
     final percentages = salesProvider.getPaymentMethodPercentages();
+    final isWideScreen = MediaQuery.of(context).size.width > 800;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Summary Cards
-          Row(
-            children: [
-              Expanded(
-                child: _buildSummaryCard(
-                  'Total Sales (2 Days)',
-                  '£${salesProvider.twoDayTotal.toStringAsFixed(2)}',
-                  Icons.monetization_on,
-                  Colors.green,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildSummaryCard(
-                  'Total Orders',
-                  '${salesProvider.twoDayOrders}',
-                  Icons.receipt,
-                  Colors.blue,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(
-                child: _buildSummaryCard(
-                  'Avg Order Value',
-                  '£${salesProvider.getAverageOrderValue().toStringAsFixed(2)}',
-                  Icons.analytics,
-                  Colors.purple,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildSummaryCard(
-                  'Payment Split',
-                  '${percentages['cash']?.toStringAsFixed(0)}% Cash',
-                  Icons.payment,
-                  Colors.orange,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Payment Method Breakdown
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Payment Method Breakdown (2 Days)',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      child: isWideScreen
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      // Summary Cards
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildSummaryCard(
+                              'Total Sales (2 Days)',
+                              '£${salesProvider.twoDayTotal.toStringAsFixed(2)}',
+                              Icons.monetization_on,
+                              Colors.green,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildSummaryCard(
+                              'Total Orders',
+                              '${salesProvider.twoDayOrders}',
+                              Icons.receipt,
+                              Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildSummaryCard(
+                              'Avg Order Value',
+                              '£${salesProvider.getAverageOrderValue().toStringAsFixed(2)}',
+                              Icons.analytics,
+                              Colors.purple,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildSummaryCard(
+                              'Payment Split',
+                              '${percentages['cash']?.toStringAsFixed(0)}% Cash',
+                              Icons.payment,
+                              Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  _buildPaymentRow(
-                    'Cash Sales',
-                    salesProvider.twoDayCash,
-                    percentages['cash'] ?? 0,
-                    Colors.green,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    children: [
+                      // Payment Method Breakdown
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Payment Method Breakdown (2 Days)',
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildPaymentRow(
+                                'Cash Sales',
+                                salesProvider.twoDayCash,
+                                percentages['cash'] ?? 0,
+                                Colors.green,
+                              ),
+                              const SizedBox(height: 8),
+                              _buildPaymentRow(
+                                'Card Sales',
+                                salesProvider.twoDayCard,
+                                percentages['card'] ?? 0,
+                                Colors.blue,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Daily Comparison
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Daily Comparison',
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildDailyComparisonRow(
+                                'Today',
+                                salesProvider.todayTotal,
+                                salesProvider.todayOrders,
+                                true,
+                              ),
+                              const SizedBox(height: 8),
+                              _buildDailyComparisonRow(
+                                'Yesterday',
+                                salesProvider.yesterdayTotal,
+                                salesProvider.yesterdayOrders,
+                                false,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  _buildPaymentRow(
-                    'Card Sales',
-                    salesProvider.twoDayCard,
-                    percentages['card'] ?? 0,
-                    Colors.blue,
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Summary Cards
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryCard(
+                        'Total Sales (2 Days)',
+                        '£${salesProvider.twoDayTotal.toStringAsFixed(2)}',
+                        Icons.monetization_on,
+                        Colors.green,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildSummaryCard(
+                        'Total Orders',
+                        '${salesProvider.twoDayOrders}',
+                        Icons.receipt,
+                        Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryCard(
+                        'Avg Order Value',
+                        '£${salesProvider.getAverageOrderValue().toStringAsFixed(2)}',
+                        Icons.analytics,
+                        Colors.purple,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildSummaryCard(
+                        'Payment Split',
+                        '${percentages['cash']?.toStringAsFixed(0)}% Cash',
+                        Icons.payment,
+                        Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // Payment Method Breakdown
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Payment Method Breakdown (2 Days)',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildPaymentRow(
+                          'Cash Sales',
+                          salesProvider.twoDayCash,
+                          percentages['cash'] ?? 0,
+                          Colors.green,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildPaymentRow(
+                          'Card Sales',
+                          salesProvider.twoDayCard,
+                          percentages['card'] ?? 0,
+                          Colors.blue,
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Daily Comparison
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Daily Comparison',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildDailyComparisonRow(
+                          'Today',
+                          salesProvider.todayTotal,
+                          salesProvider.todayOrders,
+                          true,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildDailyComparisonRow(
+                          'Yesterday',
+                          salesProvider.yesterdayTotal,
+                          salesProvider.yesterdayOrders,
+                          false,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Daily Comparison
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Daily Comparison',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDailyComparisonRow(
-                    'Today',
-                    salesProvider.todayTotal,
-                    salesProvider.todayOrders,
-                    true,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildDailyComparisonRow(
-                    'Yesterday',
-                    salesProvider.yesterdayTotal,
-                    salesProvider.yesterdayOrders,
-                    false,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

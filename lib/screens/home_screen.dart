@@ -45,8 +45,8 @@ class _HomeScreenState extends State<HomeScreen> {
               MaterialPageRoute(builder: (_) => const DineInOrderScreen()));
           break;
         case LogicalKeyboardKey.f3:
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const SalesScreen()));
+          Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const SalesScreen()));
           break;
         case LogicalKeyboardKey.f4:
           Navigator.push(context,
@@ -71,7 +71,8 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: _buildAppBar(context),
         body: Container(
           padding: const EdgeInsets.all(16),
-          child: isWideScreen ? _buildWideScreenLayout() : _buildStandardLayout(),
+          child:
+              isWideScreen ? _buildWideScreenLayout() : _buildStandardLayout(),
         ),
       ),
     );
@@ -125,16 +126,16 @@ class _HomeScreenState extends State<HomeScreen> {
           tooltip: 'Toggle Quick Stats',
         ),
         const SizedBox(width: 8),
-        
+
         // Sales Dashboard
         _buildAppBarButton(
           icon: Icons.analytics,
           label: 'Sales',
           tooltip: 'Sales Dashboard (F3)',
-          onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const SalesScreen())),
+          onPressed: () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const SalesScreen())),
         ),
-        
+
         // API Testing
         _buildAppBarButton(
           icon: Icons.api,
@@ -143,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () => Navigator.push(context,
               MaterialPageRoute(builder: (_) => const ApiTestScreen())),
         ),
-        
+
         // Printer Settings
         _buildAppBarButton(
           icon: Icons.print,
@@ -152,9 +153,9 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () => Navigator.push(context,
               MaterialPageRoute(builder: (_) => PrinterSettingsScreen())),
         ),
-        
+
         const SizedBox(width: 16),
-        
+
         // Current Time
         StreamBuilder(
           stream: Stream.periodic(const Duration(seconds: 1)),
@@ -184,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         ),
-        
+
         const SizedBox(width: 16),
       ],
     );
@@ -224,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         // Left Panel - Main Actions (40%)
         Expanded(
-          flex: 4,
+          flex: 2,
           child: Container(
             margin: const EdgeInsets.only(right: 16),
             child: Column(
@@ -238,10 +239,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        
+
         // Right Panel - Live Orders (60%)
         Expanded(
-          flex: 6,
+          flex: 3,
           child: _buildLiveOrdersPanel(),
         ),
       ],
@@ -292,7 +293,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 8),
                     const Text(
                       'Today\'s Overview',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const Spacer(),
                     IconButton(
@@ -308,7 +310,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _buildStatCard(
                         title: 'Today\'s Sales',
-                        value: '£${salesProvider.todayTotal.toStringAsFixed(2)}',
+                        value:
+                            '£${salesProvider.todayTotal.toStringAsFixed(2)}',
                         icon: Icons.monetization_on,
                         color: Colors.green,
                       ),
@@ -326,7 +329,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _buildStatCard(
                         title: 'Avg Order Value',
-                        value: '£${salesProvider.getAverageOrderValue().toStringAsFixed(2)}',
+                        value:
+                            '£${salesProvider.getAverageOrderValue().toStringAsFixed(2)}',
                         icon: Icons.analytics,
                         color: Colors.purple,
                       ),
@@ -395,14 +399,20 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMainActionsPanel() {
     return Card(
       elevation: 4,
-      clipBehavior: Clip.antiAlias, // Ensures scrolling content respects the card's rounded corners
-      child: Padding( // Use Padding for cleaner code
+      clipBehavior: Clip
+          .antiAlias, // Ensures scrolling content respects the card's rounded corners
+      child: Padding(
+        // Use Padding for cleaner code
         padding: const EdgeInsets.all(24.0),
-        child: Center( // Center the content vertically for larger screens
-          child: SingleChildScrollView( // Make the content scrollable to prevent overflow
+        child: Center(
+          // Center the content vertically for larger screens
+          child: SingleChildScrollView(
+            // Make the content scrollable to prevent overflow
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center, // Centers content within the column
-              mainAxisSize: MainAxisSize.min, // Ensures column only takes up needed space
+              mainAxisAlignment:
+                  MainAxisAlignment.center, // Centers content within the column
+              mainAxisSize:
+                  MainAxisSize.min, // Ensures column only takes up needed space
               children: [
                 Icon(
                   Icons.restaurant,
@@ -419,27 +429,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Main Order Buttons
                 _buildLargeOrderButton(
                   context: context,
                   title: 'TAKEAWAY ORDER',
                   subtitle: 'Collection & Delivery • Press F1',
                   icon: Icons.takeout_dining,
-                  onPressed: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const TakeawayOrderScreen())),
+                  onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const TakeawayOrderScreen())),
                   color: Colors.orange[600]!,
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 _buildLargeOrderButton(
                   context: context,
                   title: 'DINE IN ORDER',
                   subtitle: 'Table Service • Press F2',
                   icon: Icons.restaurant_menu,
-                  onPressed: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const DineInOrderScreen())),
+                  onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const DineInOrderScreen())),
                   color: Colors.blue[600]!,
                 ),
 
@@ -452,8 +466,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: _buildQuickActionButton(
                         title: 'Sales Report',
                         icon: Icons.analytics,
-                        onPressed: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const SalesScreen())),
+                        onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const SalesScreen())),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -461,8 +477,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: _buildQuickActionButton(
                         title: 'API Test',
                         icon: Icons.api,
-                        onPressed: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const ApiTestScreen())),
+                        onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ApiTestScreen())),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -470,8 +488,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: _buildQuickActionButton(
                         title: 'Printer Setup',
                         icon: Icons.print,
-                        onPressed: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => PrinterSettingsScreen())),
+                        onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => PrinterSettingsScreen())),
                       ),
                     ),
                   ],
@@ -500,7 +520,8 @@ class _HomeScreenState extends State<HomeScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.all(16),
           elevation: 6,
         ),
@@ -547,7 +568,8 @@ class _HomeScreenState extends State<HomeScreen> {
       style: OutlinedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         side: BorderSide(color: Colors.orange[300]!),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4), // Use padding for sizing
+        padding: const EdgeInsets.symmetric(
+            vertical: 8, horizontal: 4), // Use padding for sizing
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -598,7 +620,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Spacer(),
                     if (liveOrders.isNotEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.orange[600],
                           borderRadius: BorderRadius.circular(12),
@@ -644,14 +667,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       )
-                    : ListView.builder(
+                    : GridView.builder(
                         padding: const EdgeInsets.all(8),
                         itemCount: liveOrders.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 400,
+                          childAspectRatio: 2.5,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
                         itemBuilder: (context, index) {
                           // Display newest orders first
                           return _LiveOrderCard(
                             order: liveOrders[liveOrders.length - 1 - index],
-                            isCompactView: MediaQuery.of(context).size.width < 1200,
                           );
                         },
                       ),
@@ -667,12 +696,10 @@ class _HomeScreenState extends State<HomeScreen> {
 // Enhanced Live Order Card for desktop
 class _LiveOrderCard extends StatelessWidget {
   final Order order;
-  final bool isCompactView;
-  
+
   const _LiveOrderCard({
     Key? key,
     required this.order,
-    this.isCompactView = false,
   }) : super(key: key);
 
   @override
@@ -745,7 +772,8 @@ class _LiveOrderCard extends StatelessWidget {
                       style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                     const SizedBox(width: 16),
-                    Icon(Icons.shopping_cart, size: 14, color: Colors.grey[600]),
+                    Icon(Icons.shopping_cart,
+                        size: 14, color: Colors.grey[600]),
                     const SizedBox(width: 4),
                     Text(
                       '${order.totalItems} items',
@@ -769,9 +797,12 @@ class _LiveOrderCard extends StatelessWidget {
                 ),
                 if (order.paymentMethod != 'none')
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: order.paymentMethod == 'cash' ? Colors.green : Colors.blue,
+                      color: order.paymentMethod == 'cash'
+                          ? Colors.green
+                          : Colors.blue,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -790,13 +821,6 @@ class _LiveOrderCard extends StatelessWidget {
               _showOrderDetails(context, order);
             },
           ),
-          if (!isCompactView) ...[
-            const Divider(height: 1, indent: 16, endIndent: 16),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _buildCardActions(context, orderProvider, salesProvider),
-            ),
-          ],
         ],
       ),
     );
@@ -806,7 +830,8 @@ class _LiveOrderCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Order Details - ${order.id.substring(order.id.length - 5)}'),
+        title:
+            Text('Order Details - ${order.id.substring(order.id.length - 5)}'),
         content: SizedBox(
           width: 400,
           child: Column(
@@ -814,21 +839,23 @@ class _LiveOrderCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ...order.items.map((item) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Text('${item.quantity}x '),
-                    Expanded(child: Text(item.menuItem.name)),
-                    Text('£${item.totalPrice.toStringAsFixed(2)}'),
-                  ],
-                ),
-              )),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Text('${item.quantity}x '),
+                        Expanded(child: Text(item.menuItem.name)),
+                        Text('£${item.totalPrice.toStringAsFixed(2)}'),
+                      ],
+                    ),
+                  )),
               const Divider(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('£${order.total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const Text('Total:',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('£${order.total.toStringAsFixed(2)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
@@ -841,149 +868,6 @@ class _LiveOrderCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCardActions(BuildContext context, OrderProvider orderProvider,
-      SalesProvider salesProvider) {
-    bool canComplete =
-        order.paymentMethod == 'cash' || order.paymentMethod == 'card';
-
-    return Row(
-      children: [
-        // Payment method selection
-        if (order.paymentMethod == 'none') ...[
-          const Text('Pay with:', style: TextStyle(fontSize: 12)),
-          const SizedBox(width: 8),
-          FilterChip(
-            label: const Text('Cash', style: TextStyle(fontSize: 12)),
-            selected: false,
-            onSelected: (selected) {
-              if (selected) {
-                orderProvider.updateLiveOrderPayment(order.id, 'cash');
-              }
-            },
-            backgroundColor: Colors.grey[200],
-            selectedColor: Colors.green[200],
-          ),
-          const SizedBox(width: 4),
-          FilterChip(
-            label: const Text('Card', style: TextStyle(fontSize: 12)),
-            selected: false,
-            onSelected: (selected) {
-              if (selected) {
-                orderProvider.updateLiveOrderPayment(order.id, 'card');
-              }
-            },
-            backgroundColor: Colors.grey[200],
-            selectedColor: Colors.blue[200],
-          ),
-        ] else ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: order.paymentMethod == 'cash' ? Colors.green[100] : Colors.blue[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              'Paid by ${order.paymentMethod.toUpperCase()}',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: order.paymentMethod == 'cash' ? Colors.green[700] : Colors.blue[700],
-              ),
-            ),
-          ),
-        ],
-        
-        const Spacer(),
-        
-        // Reprint button
-        TextButton.icon(
-          onPressed: () async {
-            try {
-              await UnifiedPrinterService.printOrder(order);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Reprinting order...'),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
-              }
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Reprint failed: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            }
-          },
-          icon: const Icon(Icons.print_outlined, size: 16),
-          label: const Text('Reprint', style: TextStyle(fontSize: 12)),
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.blue[700],
-          ),
-        ),
-        
-        const SizedBox(width: 8),
-        
-        // Complete order button
-        ElevatedButton.icon(
-          onPressed: canComplete
-              ? () async {
-                  final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                                title: const Text('Complete Order?'),
-                                content: Text(
-                                    'This will finalize the sale for ${order.paymentMethod.toUpperCase()} and print the receipt. This cannot be undone.'),
-                                actions: [
-                                  TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(false),
-                                      child: const Text('Cancel')),
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        Navigator.of(ctx).pop(true),
-                                    style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green),
-                                    child: const Text('Complete',
-                                        style: TextStyle(color: Colors.white)),
-                                  ),
-                                ],
-                              )) ??
-                      false;
-
-                  if (confirm) {
-                    final completedOrder =
-                        orderProvider.completeOrder(order.id);
-                    if (completedOrder != null) {
-                      await salesProvider.addSale(completedOrder);
-                      await UnifiedPrinterService.printOrder(completedOrder);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content:
-                                  Text('Order completed and sale recorded.'),
-                              backgroundColor: Colors.green),
-                        );
-                      }
-                    }
-                  }
-                }
-              : null,
-          icon: const Icon(Icons.check_circle_outline, size: 16),
-          label: const Text('Complete', style: TextStyle(fontSize: 12)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: canComplete ? Colors.green : Colors.grey,
-            foregroundColor: Colors.white,
-          ),
-        ),
-      ],
     );
   }
 }
