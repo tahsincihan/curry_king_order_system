@@ -85,6 +85,7 @@ class CustomerService {
   }
 
   // Search customers by name (partial match, case insensitive)
+  // Search customers by name (partial match, case insensitive)
   static List<Customer> searchByName(String query) {
     if (!_isInitialized || _customersBox == null || query.trim().isEmpty) {
       return [];
@@ -92,7 +93,10 @@ class CustomerService {
 
     try {
       final normalizedQuery = query.toLowerCase().trim();
-      return _customersBox!.values
+      // Ensure we are working with a fresh, modifiable list from the start
+      final allCustomers = _customersBox!.values.toList();
+
+      return allCustomers
           .where((customer) =>
               customer.name.toLowerCase().contains(normalizedQuery))
           .toList()
@@ -134,8 +138,10 @@ class CustomerService {
 
     try {
       final normalizedPhone = _normalizePhoneNumber(phone);
-      return _customersBox!.values.firstWhereOrNull((customer) =>
-          customer.name.toLowerCase() == name.toLowerCase() &&
+      final allCustomers =
+          _customersBox!.values.toList(); // Work with a fresh list
+      return allCustomers.firstWhereOrNull((customer) =>
+          customer.name.toLowerCase() == name.toLowerCase().trim() &&
           _normalizePhoneNumber(customer.phoneNumber) == normalizedPhone);
     } catch (e) {
       print('Error getting customer by name and phone: $e');

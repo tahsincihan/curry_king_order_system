@@ -27,11 +27,11 @@ class Customer extends HiveObject {
     required this.id,
     required this.name,
     required this.phoneNumber,
-    this.addresses = const [],
+    List<CustomerAddress>? addresses, // Make it nullable
     required this.lastOrderDate,
     this.totalOrders = 0,
     this.totalSpent = 0.0,
-  });
+  }) : this.addresses = addresses ?? []; // Initialize with a new list if null
 
   // Helper method to get the most recent address
   CustomerAddress? get mostRecentAddress {
@@ -129,7 +129,8 @@ class CustomerAdapter extends TypeAdapter<Customer> {
       id: fields[0] as String,
       name: fields[1] as String,
       phoneNumber: fields[2] as String,
-      addresses: (fields[3] as List?)?.cast<CustomerAddress>() ?? [],
+      // Ensure the list is modifiable
+      addresses: List<CustomerAddress>.from(fields[3] as List? ?? []),
       lastOrderDate: fields[4] as DateTime,
       totalOrders: fields[5] as int? ?? 0,
       totalSpent: fields[6] as double? ?? 0.0,
