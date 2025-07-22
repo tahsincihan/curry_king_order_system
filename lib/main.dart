@@ -12,7 +12,8 @@ import 'theme/touch_theme.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 
 // Import window_manager types for type checking and code completion
-import 'package:window_manager/window_manager.dart' show WindowOptions, TitleBarStyle;
+import 'package:window_manager/window_manager.dart'
+    show WindowOptions, TitleBarStyle;
 
 // Import screens
 import 'screens/home_screen.dart';
@@ -25,11 +26,11 @@ bool _isDesktopPlatform() {
   try {
     // Only import dart:io if not on web
     if (kIsWeb) return false;
-    
+
     // Use a safer method to detect platform
     return defaultTargetPlatform == TargetPlatform.windows ||
-           defaultTargetPlatform == TargetPlatform.macOS ||
-           defaultTargetPlatform == TargetPlatform.linux;
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.linux;
   } catch (e) {
     print('Platform detection failed: $e');
     return false;
@@ -38,10 +39,11 @@ bool _isDesktopPlatform() {
 
 Future<void> _initializeWindowManager() async {
   if (!isDesktop) return;
-  
+
   try {
     // Dynamically import window_manager only for desktop
-    final windowManagerModule = await import('package:window_manager/window_manager.dart');
+    final windowManagerModule =
+        await import('package:window_manager/window_manager.dart');
     windowManager = windowManagerModule.windowManager;
     final windowOptions = WindowOptions(
       size: const Size(1200, 800),
@@ -59,7 +61,7 @@ Future<void> _initializeWindowManager() async {
       await windowManager?.show();
       await windowManager?.focus();
     });
-    
+
     print('✓ Window manager setup successfully');
   } catch (e) {
     print('⚠ Warning: Window manager setup failed: $e');
@@ -114,7 +116,8 @@ Future<void> main() async {
       print('Setting up window manager for desktop...');
       await _initializeWindowManager();
     } else {
-      print('Running on ${kIsWeb ? 'web' : 'mobile'} platform - skipping window manager');
+      print(
+          'Running on ${kIsWeb ? 'web' : 'mobile'} platform - skipping window manager');
     }
 
     // Configure system UI with error handling (only for mobile/desktop)
@@ -141,11 +144,10 @@ Future<void> main() async {
       salesProvider: salesProvider,
       customerProvider: customerProvider, // NEW: Pass customer provider
     ));
-    
   } catch (e, stackTrace) {
     print('❌ Critical error during app initialization: $e');
     print('Stack trace: $stackTrace');
-    
+
     // Run a minimal error app
     runApp(ErrorApp(error: e.toString()));
   }
@@ -156,7 +158,7 @@ class MyApp extends StatelessWidget {
   final CustomerProvider customerProvider; // NEW: Add customer provider
 
   const MyApp({
-    Key? key, 
+    Key? key,
     required this.salesProvider,
     required this.customerProvider, // NEW: Required parameter
   }) : super(key: key);
@@ -167,7 +169,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (context) => OrderProvider()),
         ChangeNotifierProvider.value(value: salesProvider),
-        ChangeNotifierProvider.value(value: customerProvider), // NEW: Add customer provider
+        ChangeNotifierProvider.value(
+            value: customerProvider), // NEW: Add customer provider
       ],
       child: MaterialApp(
         title: 'Curry King Touch POS',
@@ -267,7 +270,7 @@ class _SafeHomeScreenState extends State<SafeHomeScreen> {
 // Error app to show when initialization fails
 class ErrorApp extends StatelessWidget {
   final String error;
-  
+
   const ErrorApp({Key? key, required this.error}) : super(key: key);
 
   @override
@@ -400,7 +403,7 @@ class _TouchScreenWrapperState extends State<TouchScreenWrapper>
 
   void _configureTouchSettings() {
     if (kIsWeb) return; // Skip system UI changes on web
-    
+
     try {
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -423,7 +426,8 @@ class _TouchScreenWrapperState extends State<TouchScreenWrapper>
     try {
       final window = WidgetsBinding.instance.window;
       final screenSize = window.physicalSize / window.devicePixelRatio;
-      debugPrint('Touch Screen - Size: ${screenSize.width}x${screenSize.height}');
+      debugPrint(
+          'Touch Screen - Size: ${screenSize.width}x${screenSize.height}');
       debugPrint('Touch Screen - DPR: ${window.devicePixelRatio}');
     } catch (e) {
       print('Warning: Could not get screen metrics: $e');

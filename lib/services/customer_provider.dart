@@ -49,7 +49,7 @@ class CustomerProvider extends ChangeNotifier {
     }
 
     _searchQuery = query.trim();
-    
+
     if (_searchQuery.isEmpty) {
       _clearSearch();
       return;
@@ -62,7 +62,7 @@ class CustomerProvider extends ChangeNotifier {
       await Future.delayed(const Duration(milliseconds: 100)); // Debounce
 
       List<Customer> results = [];
-      
+
       // Check if query is numeric (for phone search)
       if (RegExp(r'^\d{4}$').hasMatch(_searchQuery)) {
         // Search by last 4 digits of phone
@@ -74,7 +74,6 @@ class CustomerProvider extends ChangeNotifier {
 
       _searchResults = results;
       print('Found ${results.length} customers for query: $_searchQuery');
-      
     } catch (e) {
       print('Error searching customers: $e');
       _searchResults = [];
@@ -124,7 +123,7 @@ class CustomerProvider extends ChangeNotifier {
   // Get recent customers for quick access
   List<Customer> getRecentCustomers({int limit = 5}) {
     if (!_isInitialized) return [];
-    
+
     try {
       return CustomerService.getRecentCustomers(limit: limit);
     } catch (e) {
@@ -151,10 +150,10 @@ class CustomerProvider extends ChangeNotifier {
         address: address,
         postcode: postcode,
       );
-      
+
       // Auto-select the new/updated customer
       selectCustomer(customer);
-      
+
       return customer;
     } catch (e) {
       print('Error adding/updating customer: $e');
@@ -172,7 +171,7 @@ class CustomerProvider extends ChangeNotifier {
         'totalOrders': 0,
       };
     }
-    
+
     return CustomerService.getCustomerStats();
   }
 
@@ -184,17 +183,17 @@ class CustomerProvider extends ChangeNotifier {
 
     try {
       await CustomerService.deleteCustomer(customerId);
-      
+
       // Clear selection if the deleted customer was selected
       if (_selectedCustomer?.id == customerId) {
         clearSelection();
       }
-      
+
       // Refresh search if needed
       if (_searchQuery.isNotEmpty) {
         await searchCustomers(_searchQuery);
       }
-      
+
       notifyListeners();
     } catch (e) {
       print('Error deleting customer: $e');
@@ -224,11 +223,11 @@ class CustomerProvider extends ChangeNotifier {
 
   // Validate if customer data is complete for ordering
   bool isCustomerDataComplete() {
-    return _selectedCustomer != null && 
-           _selectedAddress != null &&
-           _selectedCustomer!.name.isNotEmpty &&
-           _selectedCustomer!.phoneNumber.isNotEmpty &&
-           _selectedAddress!.address.isNotEmpty;
+    return _selectedCustomer != null &&
+        _selectedAddress != null &&
+        _selectedCustomer!.name.isNotEmpty &&
+        _selectedCustomer!.phoneNumber.isNotEmpty &&
+        _selectedAddress!.address.isNotEmpty;
   }
 
   // Get customer info for order

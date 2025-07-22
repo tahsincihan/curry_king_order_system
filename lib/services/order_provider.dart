@@ -183,10 +183,10 @@ class OrderProvider extends ChangeNotifier {
     int orderIndex = _liveOrders.indexWhere((order) => order.id == orderId);
     if (orderIndex != -1) {
       final completedOrder = _liveOrders.removeAt(orderIndex);
-      
+
       // NEW: Save customer information for future orders
       _saveCustomerFromOrder(completedOrder);
-      
+
       notifyListeners();
       return completedOrder;
     }
@@ -200,7 +200,8 @@ class OrderProvider extends ChangeNotifier {
         await CustomerService.saveCustomerFromOrder(order);
         print('Customer information saved for order ${order.id}');
       } else {
-        print('Warning: CustomerService not initialized, skipping customer save');
+        print(
+            'Warning: CustomerService not initialized, skipping customer save');
       }
     } catch (e) {
       print('Error saving customer from order: $e');

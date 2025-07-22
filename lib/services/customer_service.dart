@@ -30,7 +30,7 @@ class CustomerService {
       // Open the customers box with retry logic
       int retryCount = 0;
       const maxRetries = 3;
-      
+
       while (retryCount < maxRetries) {
         try {
           _customersBox = await Hive.openBox<Customer>(_customersBoxName);
@@ -38,8 +38,9 @@ class CustomerService {
           break;
         } catch (e) {
           retryCount++;
-          print('Error opening customers box (attempt $retryCount/$maxRetries): $e');
-          
+          print(
+              'Error opening customers box (attempt $retryCount/$maxRetries): $e');
+
           if (retryCount == maxRetries) {
             // Last resort: try to delete corrupted box and create new one
             try {
@@ -50,7 +51,8 @@ class CustomerService {
               break;
             } catch (e2) {
               print('Failed to create new customers box: $e2');
-              throw Exception('Failed to initialize customer database after $maxRetries attempts');
+              throw Exception(
+                  'Failed to initialize customer database after $maxRetries attempts');
             }
           } else {
             await Future.delayed(Duration(milliseconds: 500 * retryCount));
@@ -60,7 +62,6 @@ class CustomerService {
 
       _isInitialized = true;
       print('✓ CustomerService initialization completed successfully');
-      
     } catch (e, stackTrace) {
       print('❌ Critical error during CustomerService initialization: $e');
       print('Stack trace: $stackTrace');
@@ -92,7 +93,7 @@ class CustomerService {
     try {
       final normalizedQuery = query.toLowerCase().trim();
       return _customersBox!.values
-          .where((customer) => 
+          .where((customer) =>
               customer.name.toLowerCase().contains(normalizedQuery))
           .toList()
         ..sort((a, b) => b.lastOrderDate.compareTo(a.lastOrderDate));
@@ -115,8 +116,8 @@ class CustomerService {
       }
 
       return _customersBox!.values
-          .where((customer) => 
-              _normalizePhoneNumber(customer.phoneNumber).endsWith(normalizedLastFour))
+          .where((customer) => _normalizePhoneNumber(customer.phoneNumber)
+              .endsWith(normalizedLastFour))
           .toList()
         ..sort((a, b) => b.lastOrderDate.compareTo(a.lastOrderDate));
     } catch (e) {
@@ -133,7 +134,7 @@ class CustomerService {
 
     try {
       final normalizedPhone = _normalizePhoneNumber(phone);
-      return _customersBox!.values.firstWhereOrNull((customer) => 
+      return _customersBox!.values.firstWhereOrNull((customer) =>
           customer.name.toLowerCase() == name.toLowerCase() &&
           _normalizePhoneNumber(customer.phoneNumber) == normalizedPhone);
     } catch (e) {
@@ -193,7 +194,7 @@ class CustomerService {
 
   // Save customer from completed order
   static Future<void> saveCustomerFromOrder(Order order) async {
-    if (order.orderType != 'takeaway' || 
+    if (order.orderType != 'takeaway' ||
         !order.customerInfo.isDelivery ||
         order.customerInfo.name?.trim().isEmpty == true ||
         order.customerInfo.phoneNumber?.trim().isEmpty == true ||
@@ -265,9 +266,12 @@ class CustomerService {
     try {
       final customers = _customersBox!.values.toList();
       final totalCustomers = customers.length;
-      final totalSpent = customers.fold<double>(0.0, (sum, customer) => sum + customer.totalSpent);
-      final totalOrders = customers.fold<int>(0, (sum, customer) => sum + customer.totalOrders);
-      final averageOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0.0;
+      final totalSpent = customers.fold<double>(
+          0.0, (sum, customer) => sum + customer.totalSpent);
+      final totalOrders =
+          customers.fold<int>(0, (sum, customer) => sum + customer.totalOrders);
+      final averageOrderValue =
+          totalOrders > 0 ? totalSpent / totalOrders : 0.0;
 
       return {
         'totalCustomers': totalCustomers,

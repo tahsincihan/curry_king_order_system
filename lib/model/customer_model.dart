@@ -36,8 +36,7 @@ class Customer extends HiveObject {
   // Helper method to get the most recent address
   CustomerAddress? get mostRecentAddress {
     if (addresses.isEmpty) return null;
-    return addresses.reduce((a, b) => 
-      a.lastUsed.isAfter(b.lastUsed) ? a : b);
+    return addresses.reduce((a, b) => a.lastUsed.isAfter(b.lastUsed) ? a : b);
   }
 
   // Helper method to get last 4 digits of phone
@@ -56,10 +55,9 @@ class Customer extends HiveObject {
   // Add or update an address
   void addOrUpdateAddress(String address, String postcode) {
     // Check if this address already exists
-    final existingIndex = addresses.indexWhere(
-      (addr) => addr.address.toLowerCase() == address.toLowerCase() && 
-                addr.postcode.toLowerCase() == postcode.toLowerCase()
-    );
+    final existingIndex = addresses.indexWhere((addr) =>
+        addr.address.toLowerCase() == address.toLowerCase() &&
+        addr.postcode.toLowerCase() == postcode.toLowerCase());
 
     if (existingIndex != -1) {
       // Update existing address

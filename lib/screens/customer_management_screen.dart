@@ -8,7 +8,8 @@ class CustomerManagementScreen extends StatefulWidget {
   const CustomerManagementScreen({Key? key}) : super(key: key);
 
   @override
-  _CustomerManagementScreenState createState() => _CustomerManagementScreenState();
+  _CustomerManagementScreenState createState() =>
+      _CustomerManagementScreenState();
 }
 
 class _CustomerManagementScreenState extends State<CustomerManagementScreen>
@@ -22,10 +23,11 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
+
     // Load all customers initially
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+      final customerProvider =
+          Provider.of<CustomerProvider>(context, listen: false);
       setState(() {
         _filteredCustomers = customerProvider.getAllCustomers();
       });
@@ -40,22 +42,23 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
   }
 
   void _searchCustomers(String query) {
-    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
-    
+    final customerProvider =
+        Provider.of<CustomerProvider>(context, listen: false);
+
     setState(() {
       _isSearching = query.isNotEmpty;
       if (query.isEmpty) {
         _filteredCustomers = customerProvider.getAllCustomers();
       } else {
         final allCustomers = customerProvider.getAllCustomers();
-        _filteredCustomers = allCustomers.where((customer) =>
-          customer.name.toLowerCase().contains(query.toLowerCase()) ||
-          customer.phoneNumber.contains(query) ||
-          customer.addresses.any((addr) => 
-            addr.address.toLowerCase().contains(query.toLowerCase()) ||
-            addr.postcode.toLowerCase().contains(query.toLowerCase())
-          )
-        ).toList();
+        _filteredCustomers = allCustomers
+            .where((customer) =>
+                customer.name.toLowerCase().contains(query.toLowerCase()) ||
+                customer.phoneNumber.contains(query) ||
+                customer.addresses.any((addr) =>
+                    addr.address.toLowerCase().contains(query.toLowerCase()) ||
+                    addr.postcode.toLowerCase().contains(query.toLowerCase())))
+            .toList();
       }
     });
   }
@@ -70,7 +73,8 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Customer'),
-        content: Text('Are you sure you want to delete ${customer.name}? This action cannot be undone.'),
+        content: Text(
+            'Are you sure you want to delete ${customer.name}? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -87,14 +91,15 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
 
     if (confirmed == true) {
       try {
-        final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+        final customerProvider =
+            Provider.of<CustomerProvider>(context, listen: false);
         await customerProvider.deleteCustomer(customer.id);
-        
+
         // Refresh the list
         setState(() {
           _filteredCustomers = customerProvider.getAllCustomers();
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${customer.name} deleted successfully')),
@@ -126,31 +131,34 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
             children: [
               _buildDetailRow('Phone', customer.phoneNumber),
               _buildDetailRow('Total Orders', '${customer.totalOrders}'),
-              _buildDetailRow('Total Spent', '£${customer.totalSpent.toStringAsFixed(2)}'),
-              _buildDetailRow('Average Order', '£${(customer.totalOrders > 0 ? customer.totalSpent / customer.totalOrders : 0).toStringAsFixed(2)}'),
-              _buildDetailRow('Last Order', _formatDate(customer.lastOrderDate)),
-              
+              _buildDetailRow(
+                  'Total Spent', '£${customer.totalSpent.toStringAsFixed(2)}'),
+              _buildDetailRow('Average Order',
+                  '£${(customer.totalOrders > 0 ? customer.totalSpent / customer.totalOrders : 0).toStringAsFixed(2)}'),
+              _buildDetailRow(
+                  'Last Order', _formatDate(customer.lastOrderDate)),
               const SizedBox(height: 16),
               const Text(
                 'Addresses:',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              
               if (customer.addresses.isEmpty)
-                const Text('No addresses stored', style: TextStyle(color: Colors.grey))
+                const Text('No addresses stored',
+                    style: TextStyle(color: Colors.grey))
               else
                 ...customer.addresses.map((address) => Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    title: Text(address.address),
-                    subtitle: Text('${address.postcode} • Used ${address.useCount} times'),
-                    trailing: Text(
-                      'Last: ${_formatDate(address.lastUsed)}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                )),
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        title: Text(address.address),
+                        subtitle: Text(
+                            '${address.postcode} • Used ${address.useCount} times'),
+                        trailing: Text(
+                          'Last: ${_formatDate(address.lastUsed)}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    )),
             ],
           ),
         ),
@@ -194,7 +202,8 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+              final customerProvider =
+                  Provider.of<CustomerProvider>(context, listen: false);
               setState(() {
                 _filteredCustomers = customerProvider.getAllCustomers();
               });
@@ -208,7 +217,8 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
                   context: context,
                   builder: (context) => AlertDialog(
                     title: const Text('Clear All Customers'),
-                    content: const Text('Are you sure you want to delete all customer data? This cannot be undone.'),
+                    content: const Text(
+                        'Are you sure you want to delete all customer data? This cannot be undone.'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
@@ -216,7 +226,8 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(context, true),
-                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        style:
+                            TextButton.styleFrom(foregroundColor: Colors.red),
                         child: const Text('Clear All'),
                       ),
                     ],
@@ -225,8 +236,10 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
 
                 if (confirmed == true) {
                   try {
-                    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
-                    await customerProvider.deleteCustomer(''); // This will clear all
+                    final customerProvider =
+                        Provider.of<CustomerProvider>(context, listen: false);
+                    await customerProvider
+                        .deleteCustomer(''); // This will clear all
                     setState(() {
                       _filteredCustomers = [];
                     });
@@ -251,7 +264,8 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
             itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'clear_all',
-                child: Text('Clear All Customers', style: TextStyle(color: Colors.red)),
+                child: Text('Clear All Customers',
+                    style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
@@ -297,7 +311,8 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(25),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             onChanged: _searchCustomers,
           ),
@@ -340,7 +355,7 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        _isSearching 
+                        _isSearching
                             ? 'No customers match your search'
                             : 'No customers stored yet',
                         style: TextStyle(
@@ -367,12 +382,15 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
                   itemBuilder: (context, index) {
                     final customer = _filteredCustomers[index];
                     return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 4),
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor: Colors.orange[100],
                           child: Text(
-                            customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
+                            customer.name.isNotEmpty
+                                ? customer.name[0].toUpperCase()
+                                : '?',
                             style: TextStyle(
                               color: Colors.orange[800],
                               fontWeight: FontWeight.bold,
@@ -387,11 +405,13 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Phone: ${customer.phoneNumber}'),
-                            Text('${customer.totalOrders} orders • £${customer.totalSpent.toStringAsFixed(2)} total'),
+                            Text(
+                                '${customer.totalOrders} orders • £${customer.totalSpent.toStringAsFixed(2)} total'),
                             if (customer.mostRecentAddress != null)
                               Text(
                                 customer.mostRecentAddress!.displayAddress,
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey),
                               ),
                           ],
                         ),
@@ -410,7 +430,8 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
                             ),
                             const PopupMenuItem(
                               value: 'delete',
-                              child: Text('Delete', style: TextStyle(color: Colors.red)),
+                              child: Text('Delete',
+                                  style: TextStyle(color: Colors.red)),
                             ),
                           ],
                         ),
@@ -429,7 +450,7 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
       builder: (context, customerProvider, child) {
         final stats = customerProvider.getCustomerStats();
         final allCustomers = customerProvider.getAllCustomers();
-        
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -494,15 +515,18 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
                 Card(
                   child: Column(
                     children: (allCustomers
-                        .where((c) => c.totalSpent > 0)
-                        .toList()
-                          ..sort((a, b) => b.totalSpent.compareTo(a.totalSpent)))
+                            .where((c) => c.totalSpent > 0)
+                            .toList()
+                          ..sort(
+                              (a, b) => b.totalSpent.compareTo(a.totalSpent)))
                         .take(10)
                         .map((customer) => ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: Colors.green[100],
                                 child: Text(
-                                  customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
+                                  customer.name.isNotEmpty
+                                      ? customer.name[0].toUpperCase()
+                                      : '?',
                                   style: TextStyle(
                                     color: Colors.green[800],
                                     fontWeight: FontWeight.bold,
@@ -530,7 +554,8 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String title, String value, IconData icon, Color color) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -563,7 +588,7 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date).inDays;
-    
+
     if (difference == 0) {
       return 'Today';
     } else if (difference == 1) {

@@ -4,7 +4,8 @@ import '../model/customer_model.dart';
 import '../services/customer_provider.dart';
 
 class CustomerLookupWidget extends StatefulWidget {
-  final Function(Customer customer, CustomerAddress address)? onCustomerSelected;
+  final Function(Customer customer, CustomerAddress address)?
+      onCustomerSelected;
   final bool showRecentCustomers;
   final String? hintText;
 
@@ -32,30 +33,31 @@ class _CustomerLookupWidgetState extends State<CustomerLookupWidget> {
   }
 
   void _onSearchChanged(String query) {
-    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+    final customerProvider =
+        Provider.of<CustomerProvider>(context, listen: false);
     customerProvider.searchCustomers(query);
-    
+
     setState(() {
       _showSearchResults = query.isNotEmpty;
     });
   }
 
   void _selectCustomer(Customer customer) {
-    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
-    
+    final customerProvider =
+        Provider.of<CustomerProvider>(context, listen: false);
+
     if (customer.addresses.length == 1) {
       // Single address - auto select
       final address = customer.addresses.first;
       customerProvider.selectCustomer(customer);
       customerProvider.selectAddress(address);
-      
+
       _searchController.text = customer.displayName;
       setState(() {
         _showSearchResults = false;
       });
-      
+
       widget.onCustomerSelected?.call(customer, address);
-      
     } else if (customer.addresses.length > 1) {
       // Multiple addresses - show selection dialog
       _showAddressSelectionDialog(customer);
@@ -86,7 +88,8 @@ class _CustomerLookupWidgetState extends State<CustomerLookupWidget> {
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 child: ListTile(
                   title: Text(address.address),
-                  subtitle: Text('${address.postcode} • Used ${address.useCount} times'),
+                  subtitle: Text(
+                      '${address.postcode} • Used ${address.useCount} times'),
                   trailing: address == customer.mostRecentAddress
                       ? const Chip(
                           label: Text('Recent', style: TextStyle(fontSize: 12)),
@@ -96,16 +99,17 @@ class _CustomerLookupWidgetState extends State<CustomerLookupWidget> {
                       : null,
                   onTap: () {
                     Navigator.pop(context);
-                    
-                    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+
+                    final customerProvider =
+                        Provider.of<CustomerProvider>(context, listen: false);
                     customerProvider.selectCustomer(customer);
                     customerProvider.selectAddress(address);
-                    
+
                     _searchController.text = customer.displayName;
                     setState(() {
                       _showSearchResults = false;
                     });
-                    
+
                     widget.onCustomerSelected?.call(customer, address);
                   },
                 ),
@@ -128,7 +132,8 @@ class _CustomerLookupWidgetState extends State<CustomerLookupWidget> {
     setState(() {
       _showSearchResults = false;
     });
-    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+    final customerProvider =
+        Provider.of<CustomerProvider>(context, listen: false);
     customerProvider.clearSearchOnly();
   }
 
@@ -145,7 +150,8 @@ class _CustomerLookupWidgetState extends State<CustomerLookupWidget> {
               focusNode: _searchFocusNode,
               decoration: InputDecoration(
                 labelText: 'Search Customer',
-                hintText: widget.hintText ?? 'Enter name or last 4 digits of phone',
+                hintText:
+                    widget.hintText ?? 'Enter name or last 4 digits of phone',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -228,7 +234,9 @@ class _CustomerLookupWidgetState extends State<CustomerLookupWidget> {
               leading: CircleAvatar(
                 backgroundColor: Colors.orange[100],
                 child: Text(
-                  customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
+                  customer.name.isNotEmpty
+                      ? customer.name[0].toUpperCase()
+                      : '?',
                   style: TextStyle(
                     color: Colors.orange[800],
                     fontWeight: FontWeight.bold,
@@ -267,7 +275,7 @@ class _CustomerLookupWidgetState extends State<CustomerLookupWidget> {
 
   Widget _buildRecentCustomers(CustomerProvider customerProvider) {
     final recentCustomers = customerProvider.getRecentCustomers(limit: 3);
-    
+
     if (recentCustomers.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -289,7 +297,9 @@ class _CustomerLookupWidgetState extends State<CustomerLookupWidget> {
               leading: CircleAvatar(
                 backgroundColor: Colors.green[100],
                 child: Text(
-                  customer.name.isNotEmpty ? customer.name[0].toUpperCase() : '?',
+                  customer.name.isNotEmpty
+                      ? customer.name[0].toUpperCase()
+                      : '?',
                   style: TextStyle(
                     color: Colors.green[800],
                     fontWeight: FontWeight.bold,
@@ -312,7 +322,7 @@ class _CustomerLookupWidgetState extends State<CustomerLookupWidget> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date).inDays;
-    
+
     if (difference == 0) {
       return 'Today';
     } else if (difference == 1) {
