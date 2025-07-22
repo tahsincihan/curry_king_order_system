@@ -589,6 +589,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ========== FIX STARTS HERE ==========
   Widget _buildLiveOrdersPanel() {
     return Consumer<OrderProvider>(
       builder: (context, orderProvider, child) {
@@ -667,22 +668,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       )
-                    : GridView.builder(
+                    : SingleChildScrollView(
                         padding: const EdgeInsets.all(8),
-                        itemCount: liveOrders.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 400,
-                          childAspectRatio: 2.5,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
+                        child: Wrap(
+                          spacing: 8.0,
+                          runSpacing: 8.0,
+                          // FIX: Align the items to the start (left)
+                          alignment: WrapAlignment.start,
+                          children: liveOrders.reversed.map((order) {
+                            return SizedBox(
+                              width: 380,
+                              child: _LiveOrderCard(order: order),
+                            );
+                          }).toList(),
                         ),
-                        itemBuilder: (context, index) {
-                          // Display newest orders first
-                          return _LiveOrderCard(
-                            order: liveOrders[liveOrders.length - 1 - index],
-                          );
-                        },
                       ),
               ),
             ],
@@ -693,7 +692,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Enhanced Live Order Card for desktop
 class _LiveOrderCard extends StatelessWidget {
   final Order order;
 
@@ -704,9 +702,6 @@ class _LiveOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-    final salesProvider = Provider.of<SalesProvider>(context, listen: false);
-
     IconData icon;
     String title;
     String subtitle;
@@ -736,90 +731,210 @@ class _LiveOrderCard extends StatelessWidget {
     }
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      margin: EdgeInsets.zero,
       elevation: 3,
       color: cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: accentColor.withOpacity(0.3), width: 1),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: accentColor, size: 24),
-            ),
-            title: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(subtitle),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      DateFormat('HH:mm').format(order.orderTime),
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    ),
-                    const SizedBox(width: 16),
-                    Icon(Icons.shopping_cart,
-                        size: 14, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${order.totalItems} items',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '£${order.total.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: accentColor,
-                  ),
-                ),
-                if (order.paymentMethod != 'none')
+          InkWell(
+            onTap: () => _showOrderDetails(context, order),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: order.paymentMethod == 'cash'
-                          ? Colors.green
-                          : Colors.blue,
-                      borderRadius: BorderRadius.circular(10),
+                      color: accentColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(
-                      order.paymentMethod.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Icon(icon, color: accentColor, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: Colors.grey[700], fontSize: 13),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.access_time,
+                                size: 14, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              DateFormat('HH:mm').format(order.orderTime),
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 12),
+                            ),
+                            const SizedBox(width: 16),
+                            Icon(Icons.shopping_cart,
+                                size: 14, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${order.totalItems} items',
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-              ],
+                  const SizedBox(width: 8),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '£${order.total.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: accentColor,
+                        ),
+                      ),
+                      if (order.paymentMethod != 'none') ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: order.paymentMethod == 'cash'
+                                ? Colors.green
+                                : Colors.blue,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            order.paymentMethod.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ]
+                    ],
+                  ),
+                ],
+              ),
             ),
-            onTap: () {
-              // Show order details in a dialog
-              _showOrderDetails(context, order);
-            },
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: SizedBox(
+              width: double.infinity,
+              height: 36,
+              child: ElevatedButton.icon(
+                onPressed: () => _handleCompleteOrder(context, accentColor),
+                icon: const Icon(Icons.check_circle, size: 18),
+                label: const Text('Mark as Done'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleCompleteOrder(BuildContext context, Color color) async {
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    final salesProvider = Provider.of<SalesProvider>(context, listen: false);
+
+    String finalPaymentMethod = order.paymentMethod;
+
+    if (finalPaymentMethod == 'none') {
+      final newPaymentMethod = await _showPaymentSelectionDialog(context);
+      if (newPaymentMethod == null) return;
+      finalPaymentMethod = newPaymentMethod;
+      orderProvider.updateLiveOrderPayment(order.id, finalPaymentMethod);
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Completion'),
+        content: Text(
+            'Mark order for "${order.customerInfo.name ?? 'Table ${order.tableNumber}'}" as done?'),
+        actions: [
+          TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(ctx).pop(false)),
+          ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: color),
+              child: const Text('Complete'),
+              onPressed: () => Navigator.of(ctx).pop(true)),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final completedOrder = orderProvider.completeOrder(order.id);
+      if (completedOrder != null) {
+        await salesProvider.addSale(completedOrder);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Order for "${completedOrder.customerInfo.name ?? 'Table ${completedOrder.tableNumber}'}" completed.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<String?> _showPaymentSelectionDialog(BuildContext context) {
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Payment Method'),
+        content: const Text('Please select the payment method for this order.'),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          ElevatedButton(
+            child: const Text('Cash'),
+            onPressed: () => Navigator.of(context).pop('cash'),
+          ),
+          ElevatedButton(
+            child: const Text('Card'),
+            onPressed: () => Navigator.of(context).pop('card'),
           ),
         ],
       ),
