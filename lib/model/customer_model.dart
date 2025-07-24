@@ -76,7 +76,8 @@ class Customer extends HiveObject {
     // Keep only the 3 most recent addresses to avoid clutter
     if (addresses.length > 3) {
       addresses.sort((a, b) => b.lastUsed.compareTo(a.lastUsed));
-      addresses = addresses.take(3).toList();
+      // FIX: Modify the list in place instead of creating a new one
+      addresses.removeRange(3, addresses.length);
     }
   }
 

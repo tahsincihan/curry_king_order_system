@@ -151,7 +151,7 @@ class _CustomerLookupWidgetState extends State<CustomerLookupWidget> {
               decoration: InputDecoration(
                 labelText: 'Search Customer',
                 hintText:
-                    widget.hintText ?? 'Enter name or last 4 digits of phone',
+                    widget.hintText ?? 'Search by name, phone, or address...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(

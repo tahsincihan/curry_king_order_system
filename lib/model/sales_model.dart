@@ -40,7 +40,8 @@ class DailySales extends HiveObject {
   double get totalSales => cashSales + cardSales;
 
   void addTransaction(SaleTransaction transaction) {
-    transactions = [...transactions, transaction];
+    // FIX: Modify the list in place instead of creating a new one
+    transactions.add(transaction);
 
     if (transaction.paymentMethod == 'cash') {
       cashSales += transaction.amount;
@@ -121,7 +122,8 @@ class DailySalesAdapter extends TypeAdapter<DailySales> {
       cashOrders: fields[4] as int? ?? 0,
       cardOrders: fields[5] as int? ?? 0,
       deliveryCharges: fields[6] as double? ?? 0.0,
-      transactions: (fields[7] as List?)?.cast<SaleTransaction>() ?? [],
+      // Ensure the list is modifiable
+      transactions: List<SaleTransaction>.from(fields[7] as List? ?? []),
     );
   }
 

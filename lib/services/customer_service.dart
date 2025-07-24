@@ -84,8 +84,7 @@ class CustomerService {
     return phone.replaceAll(RegExp(r'\D'), '');
   }
 
-  // Search customers by name (partial match, case insensitive)
-  // Search customers by name (partial match, case insensitive)
+  // Search customers by name, address, or postcode (partial match, case insensitive)
   static List<Customer> searchByName(String query) {
     if (!_isInitialized || _customersBox == null || query.trim().isEmpty) {
       return [];
@@ -93,16 +92,23 @@ class CustomerService {
 
     try {
       final normalizedQuery = query.toLowerCase().trim();
-      // Ensure we are working with a fresh, modifiable list from the start
       final allCustomers = _customersBox!.values.toList();
 
       return allCustomers
           .where((customer) =>
-              customer.name.toLowerCase().contains(normalizedQuery))
+              // Search by customer name
+              customer.name.toLowerCase().contains(normalizedQuery) ||
+              // Search by address or postcode
+              customer.addresses.any((address) =>
+                  address.address.toLowerCase().contains(normalizedQuery) ||
+                  address.postcode
+                      .toLowerCase()
+                      .replaceAll(' ', '')
+                      .contains(normalizedQuery.replaceAll(' ', ''))))
           .toList()
         ..sort((a, b) => b.lastOrderDate.compareTo(a.lastOrderDate));
     } catch (e) {
-      print('Error searching customers by name: $e');
+      print('Error searching customers by name or address: $e');
       return [];
     }
   }
