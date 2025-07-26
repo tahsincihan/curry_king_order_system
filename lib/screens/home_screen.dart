@@ -12,6 +12,7 @@ import 'printer_settings_screen.dart';
 import 'sales_screen.dart';
 import 'order_summary.dart';
 import 'api_test_screen.dart'; // Add this import
+import 'customer_management_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -134,6 +135,17 @@ class _HomeScreenState extends State<HomeScreen> {
           tooltip: 'Sales Dashboard (F3)',
           onPressed: () => Navigator.push(
               context, MaterialPageRoute(builder: (_) => const SalesScreen())),
+        ),
+
+        // Customer Management
+        _buildAppBarButton(
+          icon: Icons.people,
+          label: 'Customers',
+          tooltip: 'Customer Management',
+          onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const CustomerManagementScreen())),
         ),
 
         // API Testing
@@ -470,6 +482,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             context,
                             MaterialPageRoute(
                                 builder: (_) => const SalesScreen())),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildQuickActionButton(
+                        title: 'Customers',
+                        icon: Icons.people,
+                        onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const CustomerManagementScreen())),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -875,6 +899,9 @@ class _LiveOrderCard extends StatelessWidget {
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
     final salesProvider = Provider.of<SalesProvider>(context, listen: false);
 
+    // Save a reference to ScaffoldMessenger before any async operations
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     String finalPaymentMethod = order.paymentMethod;
 
     if (finalPaymentMethod == 'none') {
@@ -902,15 +929,27 @@ class _LiveOrderCard extends StatelessWidget {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
-      final completedOrder = orderProvider.completeOrder(order.id);
-      if (completedOrder != null) {
-        await salesProvider.addSale(completedOrder);
-        ScaffoldMessenger.of(context).showSnackBar(
+    if (confirmed == true) {
+      try {
+        final completedOrder = orderProvider.completeOrder(order.id);
+        if (completedOrder != null) {
+          await salesProvider.addSale(completedOrder);
+
+          // Use the saved ScaffoldMessenger reference instead of context
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Order for "${completedOrder.customerInfo.name ?? 'Table ${completedOrder.tableNumber}'}" completed.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        // Show error message if something goes wrong
+        scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text(
-                'Order for "${completedOrder.customerInfo.name ?? 'Table ${completedOrder.tableNumber}'}" completed.'),
-            backgroundColor: Colors.green,
+            content: Text('Error completing order: $e'),
+            backgroundColor: Colors.red,
           ),
         );
       }
