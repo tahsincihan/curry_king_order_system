@@ -1,264 +1,651 @@
 import 'package:flutter/material.dart';
 
 class TouchPOSTheme {
+  // Modern color palette
+  static const Color primaryOrange = Color(0xFFFF6B35);
+  static const Color primaryOrangeLight = Color(0xFFFF8A5B);
+  static const Color primaryOrangeDark = Color(0xFFE85A2B);
+  static const Color accentBlue = Color(0xFF2E86AB);
+  static const Color accentBlueDark = Color(0xFF1A5F7A);
+  static const Color successGreen = Color(0xFF39B54A);
+  static const Color warningAmber = Color(0xFFFFC107);
+  static const Color errorRed = Color(0xFFE53E3E);
+
+  // Neutral colors
+  static const Color surfaceWhite = Color(0xFFFAFAFA);
+  static const Color cardWhite = Color(0xFFFFFFFF);
+  static const Color textDark = Color(0xFF2D3748);
+  static const Color textMedium = Color(0xFF4A5568);
+  static const Color textLight = Color(0xFF718096);
+  static const Color borderGray = Color(0xFFE2E8F0);
+  static const Color backgroundGray = Color(0xFFF7FAFC);
+
   // Touch-optimized sizing
   static const double minTouchTarget = 48.0;
   static const double preferredTouchTarget = 56.0;
   static const double largeTouchTarget = 72.0;
   static const double extraLargeTouchTarget = 88.0;
 
-  // Touch-friendly spacing
-  static const double touchPadding = 16.0;
-  static const double touchMargin = 12.0;
-  static const double touchSpacing = 20.0;
+  // Modern spacing system
+  static const double space4 = 4.0;
+  static const double space8 = 8.0;
+  static const double space12 = 12.0;
+  static const double space16 = 16.0;
+  static const double space20 = 20.0;
+  static const double space24 = 24.0;
+  static const double space32 = 32.0;
+  static const double space48 = 48.0;
+
+  // Border radius system
+  static const double radiusSmall = 8.0;
+  static const double radiusMedium = 12.0;
+  static const double radiusLarge = 16.0;
+  static const double radiusXLarge = 24.0;
 
   static ThemeData get touchOptimizedTheme {
     return ThemeData(
-      primarySwatch: Colors.orange,
-      visualDensity: VisualDensity.comfortable, // More space for touch
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primaryOrange,
+        brightness: Brightness.light,
+        primary: primaryOrange,
+        primaryContainer: primaryOrangeLight,
+        secondary: accentBlue,
+        secondaryContainer: accentBlueDark,
+        surface: surfaceWhite,
+        background: backgroundGray,
+        error: errorRed,
+      ),
 
-      // Touch-optimized app bar
-      appBarTheme: const AppBarTheme(
+      // Enhanced app bar theme
+      appBarTheme: AppBarTheme(
         toolbarHeight: 90,
-        titleTextStyle: TextStyle(
-          fontSize: 26,
+        elevation: 0,
+        backgroundColor: primaryOrange,
+        foregroundColor: Colors.white,
+        centerTitle: false,
+        titleTextStyle: const TextStyle(
+          fontSize: 28,
           fontWeight: FontWeight.bold,
           color: Colors.white,
+          letterSpacing: -0.5,
         ),
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+          size: 28,
+        ),
+        actionsIconTheme: const IconThemeData(
+          color: Colors.white,
+          size: 26,
+        ),
+        shadowColor: primaryOrange.withOpacity(0.3),
       ),
 
-      // Large, touch-friendly buttons
+      // Modern elevated buttons
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          minimumSize:
-              const Size(preferredTouchTarget, preferredTouchTarget + 10),
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-          textStyle: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 4,
+          elevation: 3,
           shadowColor: Colors.black26,
+          minimumSize:
+              const Size(preferredTouchTarget, preferredTouchTarget + 8),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusMedium),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.1,
+          ),
+        ).copyWith(
+          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+            if (states.contains(MaterialState.pressed)) {
+              return primaryOrangeDark;
+            }
+            if (states.contains(MaterialState.hovered)) {
+              return primaryOrangeLight;
+            }
+            if (states.contains(MaterialState.disabled)) {
+              return Colors.grey[300]!;
+            }
+            return primaryOrange;
+          }),
+          foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+            if (states.contains(MaterialState.disabled)) {
+              return Colors.grey[500]!;
+            }
+            return Colors.white;
+          }),
+          overlayColor:
+              MaterialStateProperty.all(Colors.white.withOpacity(0.1)),
         ),
       ),
 
-      // Touch-friendly outlined buttons
+      // Modern outlined buttons
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize:
-              const Size(preferredTouchTarget, preferredTouchTarget + 10),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          textStyle: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+              const Size(preferredTouchTarget, preferredTouchTarget + 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(radiusMedium),
           ),
-          side: const BorderSide(width: 2),
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.1,
+          ),
+          side: const BorderSide(color: primaryOrange, width: 2),
+        ).copyWith(
+          foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+            if (states.contains(MaterialState.pressed)) {
+              return Colors.white;
+            }
+            if (states.contains(MaterialState.disabled)) {
+              return Colors.grey[400]!;
+            }
+            return primaryOrange;
+          }),
+          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+            if (states.contains(MaterialState.pressed)) {
+              return primaryOrange;
+            }
+            if (states.contains(MaterialState.hovered)) {
+              return primaryOrange.withOpacity(0.04);
+            }
+            return Colors.transparent;
+          }),
+          side: MaterialStateProperty.resolveWith<BorderSide>((states) {
+            if (states.contains(MaterialState.disabled)) {
+              return BorderSide(color: Colors.grey[300]!, width: 2);
+            }
+            return const BorderSide(color: primaryOrange, width: 2);
+          }),
         ),
       ),
 
-      // Large text buttons
+      // Enhanced text buttons
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           minimumSize:
-              const Size(preferredTouchTarget, preferredTouchTarget + 10),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          textStyle: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+              const Size(preferredTouchTarget, preferredTouchTarget + 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusSmall),
           ),
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.1,
+          ),
+          foregroundColor: primaryOrange,
         ),
       ),
 
-      // Touch-friendly icon buttons
+      // Modern icon buttons
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          minimumSize:
-              const Size(preferredTouchTarget, preferredTouchTarget + 10),
-          padding: const EdgeInsets.all(14),
-          iconSize: 30,
+          minimumSize: const Size(preferredTouchTarget, preferredTouchTarget),
+          padding: const EdgeInsets.all(12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusSmall),
+          ),
+          backgroundColor: Colors.transparent,
+        ).copyWith(
+          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+            if (states.contains(MaterialState.pressed)) {
+              return primaryOrange.withOpacity(0.12);
+            }
+            if (states.contains(MaterialState.hovered)) {
+              return primaryOrange.withOpacity(0.04);
+            }
+            return Colors.transparent;
+          }),
         ),
       ),
 
-      // Larger cards with touch-friendly elevation
+      // Enhanced card theme
       cardTheme: CardTheme(
-        elevation: 8,
-        margin: const EdgeInsets.all(touchMargin + 2),
+        elevation: 2,
+        shadowColor: Colors.black.withOpacity(0.08),
+        margin: const EdgeInsets.all(space8),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(radiusLarge),
+        ),
+        color: cardWhite,
+        surfaceTintColor: Colors.transparent,
+      ),
+
+      // Modern list tile theme
+      listTileTheme: const ListTileThemeData(
+        minVerticalPadding: 16,
+        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        dense: false,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(radiusMedium)),
         ),
       ),
 
-      // Touch-optimized list tiles
-      listTileTheme: const ListTileThemeData(
-        minVerticalPadding: 18,
-        contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-        dense: false,
-      ),
-
-      // Large, readable text
+      // Enhanced typography
       textTheme: const TextTheme(
-        // Headlines
-        headlineLarge: TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
-        headlineMedium: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
-        headlineSmall: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-
-        // Titles
-        titleLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
-        titleMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-        titleSmall: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-
-        // Body text
-        bodyLarge: TextStyle(fontSize: 20),
-        bodyMedium: TextStyle(fontSize: 18),
-        bodySmall: TextStyle(fontSize: 16),
-
-        // Labels
-        labelLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        labelMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        labelSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        displayLarge: TextStyle(
+          fontSize: 36,
+          fontWeight: FontWeight.bold,
+          letterSpacing: -1.0,
+          color: textDark,
+        ),
+        displayMedium: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          letterSpacing: -0.8,
+          color: textDark,
+        ),
+        displaySmall: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          letterSpacing: -0.6,
+          color: textDark,
+        ),
+        headlineLarge: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          letterSpacing: -0.4,
+          color: textDark,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
+          color: textDark,
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: textDark,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.0,
+          color: textDark,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+          color: textDark,
+        ),
+        titleSmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+          color: textMedium,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.normal,
+          letterSpacing: 0.1,
+          color: textDark,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.normal,
+          letterSpacing: 0.2,
+          color: textMedium,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.normal,
+          letterSpacing: 0.3,
+          color: textLight,
+        ),
+        labelLarge: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+          color: textDark,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+          color: textMedium,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+          color: textLight,
+        ),
       ),
 
-      // Touch-friendly input decoration
+      // Modern input decoration
       inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: cardWhite,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(width: 2),
+          borderRadius: BorderRadius.circular(radiusMedium),
+          borderSide: const BorderSide(color: borderGray, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[400]!, width: 2),
+          borderRadius: BorderRadius.circular(radiusMedium),
+          borderSide: const BorderSide(color: borderGray, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.orange, width: 2),
+          borderRadius: BorderRadius.circular(radiusMedium),
+          borderSide: const BorderSide(color: primaryOrange, width: 2),
         ),
-        labelStyle: const TextStyle(fontSize: 18),
-        hintStyle: TextStyle(fontSize: 18, color: Colors.grey[600]),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMedium),
+          borderSide: const BorderSide(color: errorRed, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMedium),
+          borderSide: const BorderSide(color: errorRed, width: 2),
+        ),
+        labelStyle: const TextStyle(
+          fontSize: 16,
+          color: textMedium,
+          fontWeight: FontWeight.w500,
+        ),
+        hintStyle: const TextStyle(
+          fontSize: 16,
+          color: textLight,
+        ),
+        suffixIconColor: primaryOrange,
+        prefixIconColor: textMedium,
       ),
 
-      // Touch-friendly chips
+      // Enhanced chip theme
       chipTheme: ChipThemeData(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+        backgroundColor: backgroundGray,
+        selectedColor: primaryOrange,
+        secondarySelectedColor: primaryOrangeLight,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        labelStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: textDark,
         ),
-        elevation: 2,
+        secondaryLabelStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusLarge),
+        ),
+        elevation: 1,
+        pressElevation: 2,
       ),
 
-      // Touch-optimized dialog theme
+      // Modern dialog theme
       dialogTheme: DialogTheme(
+        elevation: 8,
+        shadowColor: Colors.black.withOpacity(0.15),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(radiusXLarge),
         ),
+        backgroundColor: cardWhite,
         titleTextStyle: const TextStyle(
-          fontSize: 26,
+          fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: textDark,
+          letterSpacing: -0.2,
         ),
         contentTextStyle: const TextStyle(
-          fontSize: 18,
-          color: Colors.black87,
+          fontSize: 16,
+          color: textMedium,
+          height: 1.5,
         ),
       ),
 
-      // Touch-friendly bottom sheet
-      bottomSheetTheme: const BottomSheetThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
+      // Enhanced bottom sheet
+      bottomSheetTheme: BottomSheetThemeData(
         elevation: 8,
+        shadowColor: Colors.black.withOpacity(0.15),
+        shape: const RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(radiusXLarge)),
+        ),
+        backgroundColor: cardWhite,
       ),
 
-      // Touch-optimized tab bar
+      // Modern tab bar
       tabBarTheme: const TabBarTheme(
-        labelStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        unselectedLabelStyle:
-            TextStyle(fontSize: 18, fontWeight: FontWeight.normal),
-        labelPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        labelStyle: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
+        ),
+        labelColor: primaryOrange,
+        unselectedLabelColor: textMedium,
+        indicatorColor: primaryOrange,
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
 
-      // Touch-friendly switches and checkboxes
+      // Enhanced switch theme
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.all(Colors.orange),
-        trackColor: MaterialStateProperty.all(Colors.orangeAccent),
+        thumbColor: MaterialStateProperty.resolveWith<Color>((states) {
+          if (states.contains(MaterialState.selected)) {
+            return primaryOrange;
+          }
+          return Colors.white;
+        }),
+        trackColor: MaterialStateProperty.resolveWith<Color>((states) {
+          if (states.contains(MaterialState.selected)) {
+            return primaryOrangeLight;
+          }
+          return borderGray;
+        }),
+        overlayColor:
+            MaterialStateProperty.all(primaryOrange.withOpacity(0.12)),
       ),
 
+      // Enhanced checkbox theme
       checkboxTheme: CheckboxThemeData(
+        fillColor: MaterialStateProperty.resolveWith<Color>((states) {
+          if (states.contains(MaterialState.selected)) {
+            return primaryOrange;
+          }
+          return Colors.transparent;
+        }),
+        checkColor: MaterialStateProperty.all(Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(4),
         ),
         materialTapTargetSize: MaterialTapTargetSize.padded,
       ),
 
-      // Touch-friendly sliders
-      sliderTheme: const SliderThemeData(
-        thumbShape: RoundSliderThumbShape(enabledThumbRadius: 14),
-        trackHeight: 8,
-        overlayShape: RoundSliderOverlayShape(overlayRadius: 28),
+      // Enhanced slider theme
+      sliderTheme: SliderThemeData(
+        activeTrackColor: primaryOrange,
+        inactiveTrackColor: borderGray,
+        thumbColor: primaryOrange,
+        overlayColor: primaryOrange.withOpacity(0.12),
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
+        trackHeight: 6,
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 24),
+      ),
+
+      // Enhanced floating action button
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: primaryOrange,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        focusElevation: 6,
+        hoverElevation: 6,
+        highlightElevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(radiusLarge)),
+        ),
       ),
     );
   }
 
-  // Predefined button sizes for different use cases
-  static ButtonStyle get primaryOrderButton => ElevatedButton.styleFrom(
-        minimumSize: const Size(220, extraLargeTouchTarget + 10),
-        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
-        textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        backgroundColor: Colors.orange[600],
+  // Custom button styles
+  static ButtonStyle get primaryLargeButton => ElevatedButton.styleFrom(
+        minimumSize: const Size(200, extraLargeTouchTarget),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+        textStyle: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.1,
+        ),
+        backgroundColor: primaryOrange,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusLarge),
+        ),
+        elevation: 4,
+        shadowColor: primaryOrange.withOpacity(0.3),
       );
 
-  static ButtonStyle get secondaryButton => ElevatedButton.styleFrom(
-        minimumSize: const Size(170, largeTouchTarget + 10),
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        backgroundColor: Colors.grey[100],
-        foregroundColor: Colors.grey[800],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  static ButtonStyle get successButton => ElevatedButton.styleFrom(
+        backgroundColor: successGreen,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusMedium),
+        ),
         elevation: 2,
+        shadowColor: successGreen.withOpacity(0.3),
+      );
+
+  static ButtonStyle get warningButton => ElevatedButton.styleFrom(
+        backgroundColor: warningAmber,
+        foregroundColor: textDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusMedium),
+        ),
+        elevation: 2,
+        shadowColor: warningAmber.withOpacity(0.3),
+      );
+
+  static ButtonStyle get dangerButton => ElevatedButton.styleFrom(
+        backgroundColor: errorRed,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusMedium),
+        ),
+        elevation: 2,
+        shadowColor: errorRed.withOpacity(0.3),
+      );
+
+  static ButtonStyle get connectButton => ElevatedButton.styleFrom(
+        minimumSize: const Size(100, 40),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        backgroundColor: accentBlue,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusLarge),
+        ),
+        elevation: 2,
+        shadowColor: accentBlue.withOpacity(0.3),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
       );
 
   static ButtonStyle get menuItemButton => ElevatedButton.styleFrom(
-        minimumSize: const Size(double.infinity, largeTouchTarget + 10),
-        padding: const EdgeInsets.all(18),
+        minimumSize: const Size(double.infinity, largeTouchTarget + 8),
+        padding: const EdgeInsets.all(16),
         alignment: Alignment.centerLeft,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 2,
+        backgroundColor: cardWhite,
+        foregroundColor: textDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusMedium),
+        ),
+        elevation: 1,
+        shadowColor: Colors.black.withOpacity(0.05),
       );
 
-  static ButtonStyle get numpadButton => ElevatedButton.styleFrom(
-        minimumSize:
-            const Size(extraLargeTouchTarget + 10, extraLargeTouchTarget + 10),
-        padding: EdgeInsets.zero,
-        textStyle: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 4,
+  // Custom container styles
+  static BoxDecoration get cardDecoration => BoxDecoration(
+        color: cardWhite,
+        borderRadius: BorderRadius.circular(radiusLarge),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       );
 
-  // Touch-friendly spacing helpers
-  static const EdgeInsets touchPaddingAll = EdgeInsets.all(touchPadding);
-  static const EdgeInsets touchPaddingHorizontal =
-      EdgeInsets.symmetric(horizontal: touchPadding);
-  static const EdgeInsets touchPaddingVertical =
-      EdgeInsets.symmetric(vertical: touchPadding);
+  static BoxDecoration get primaryGradientDecoration => BoxDecoration(
+        gradient: LinearGradient(
+          colors: [primaryOrange, primaryOrangeLight],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(radiusLarge),
+        boxShadow: [
+          BoxShadow(
+            color: primaryOrange.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      );
 
-  static const SizedBox touchSpacingSmall = SizedBox(height: 14, width: 14);
-  static const SizedBox touchSpacingMedium =
-      SizedBox(height: touchSpacing + 4, width: touchSpacing + 4);
-  static const SizedBox touchSpacingLarge = SizedBox(height: 36, width: 36);
+  static BoxDecoration get statusCardDecoration => BoxDecoration(
+        color: successGreen.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(radiusMedium),
+        border: Border.all(
+          color: successGreen.withOpacity(0.3),
+          width: 1,
+        ),
+      );
 
   // Touch feedback colors
-  static const Color touchHighlight = Color(0x40FF9800);
-  static const Color touchSplash = Color(0x60FF9800);
+  static const Color touchHighlight = Color(0x20FF6B35);
+  static const Color touchSplash = Color(0x40FF6B35);
+
+  // Helper methods for spacing
+  static EdgeInsets get paddingAll16 => const EdgeInsets.all(space16);
+  static EdgeInsets get paddingAll20 => const EdgeInsets.all(space20);
+  static EdgeInsets get paddingAll24 => const EdgeInsets.all(space24);
+
+  static EdgeInsets get paddingH16 =>
+      const EdgeInsets.symmetric(horizontal: space16);
+  static EdgeInsets get paddingH20 =>
+      const EdgeInsets.symmetric(horizontal: space20);
+  static EdgeInsets get paddingH24 =>
+      const EdgeInsets.symmetric(horizontal: space24);
+
+  static EdgeInsets get paddingV16 =>
+      const EdgeInsets.symmetric(vertical: space16);
+  static EdgeInsets get paddingV20 =>
+      const EdgeInsets.symmetric(vertical: space20);
+  static EdgeInsets get paddingV24 =>
+      const EdgeInsets.symmetric(vertical: space24);
+
+  // Helper methods for spacing widgets
+  static Widget get verticalSpace8 => const SizedBox(height: space8);
+  static Widget get verticalSpace12 => const SizedBox(height: space12);
+  static Widget get verticalSpace16 => const SizedBox(height: space16);
+  static Widget get verticalSpace20 => const SizedBox(height: space20);
+  static Widget get verticalSpace24 => const SizedBox(height: space24);
+  static Widget get verticalSpace32 => const SizedBox(height: space32);
+
+  static Widget get horizontalSpace8 => const SizedBox(width: space8);
+  static Widget get horizontalSpace12 => const SizedBox(width: space12);
+  static Widget get horizontalSpace16 => const SizedBox(width: space16);
+  static Widget get horizontalSpace20 => const SizedBox(width: space20);
+  static Widget get horizontalSpace24 => const SizedBox(width: space24);
 }
