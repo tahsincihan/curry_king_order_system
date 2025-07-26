@@ -11,7 +11,7 @@ import 'dine_in_screen.dart';
 import 'printer_settings_screen.dart';
 import 'sales_screen.dart';
 import 'order_summary.dart';
-import 'api_test_screen.dart'; // Add this import
+import 'api_test_screen.dart';
 import 'customer_management_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -38,12 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (event is RawKeyDownEvent) {
       switch (event.logicalKey) {
         case LogicalKeyboardKey.f1:
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const TakeawayOrderScreen()));
+          _navigateToTakeaway();
           break;
         case LogicalKeyboardKey.f2:
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const DineInOrderScreen()));
+          _navigateToDineIn();
           break;
         case LogicalKeyboardKey.f3:
           Navigator.push(
@@ -54,6 +52,104 @@ class _HomeScreenState extends State<HomeScreen> {
               MaterialPageRoute(builder: (_) => const ApiTestScreen()));
           break;
       }
+    }
+  }
+
+  // NEW: Check printer connection before navigation
+  Future<bool> _checkPrinterConnection() async {
+    final currentPrinter = UnifiedPrinterService.getCurrentPrinter();
+    return currentPrinter != null;
+  }
+
+  // NEW: Show printer warning dialog
+  Future<void> _showPrinterWarningDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.print_disabled, color: Colors.red[600], size: 28),
+              const SizedBox(width: 12),
+              const Text('No Printer Connected'),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You must connect a printer before taking orders.',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 12),
+              Text('Without a printer:'),
+              Text('• Orders cannot be printed for the kitchen'),
+              Text('• Receipts cannot be provided to customers'),
+              Text('• Order processing will be incomplete'),
+              SizedBox(height: 12),
+              Text(
+                'Please connect a printer before proceeding.',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => PrinterSettingsScreen()),
+                );
+              },
+              icon: const Icon(Icons.print),
+              label: const Text('Setup Printer'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange[600],
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // NEW: Navigate to takeaway with printer validation
+  Future<void> _navigateToTakeaway() async {
+    final hasPrinter = await _checkPrinterConnection();
+    if (!hasPrinter) {
+      await _showPrinterWarningDialog();
+      return;
+    }
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TakeawayOrderScreen()),
+      );
+    }
+  }
+
+  // NEW: Navigate to dine-in with printer validation
+  Future<void> _navigateToDineIn() async {
+    final hasPrinter = await _checkPrinterConnection();
+    if (!hasPrinter) {
+      await _showPrinterWarningDialog();
+      return;
+    }
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const DineInOrderScreen()),
+      );
     }
   }
 
@@ -80,6 +176,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final currentPrinter = UnifiedPrinterService.getCurrentPrinter();
+    final hasPrinter = currentPrinter != null;
+
     return AppBar(
       title: Row(
         children: [
@@ -108,6 +207,40 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(width: 16),
+          // NEW: Printer Status Indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: hasPrinter
+                  ? Colors.green.withOpacity(0.2)
+                  : Colors.red.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: hasPrinter ? Colors.green : Colors.red,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  hasPrinter ? Icons.print : Icons.print_disabled,
+                  size: 16,
+                  color: hasPrinter ? Colors.green : Colors.red,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  hasPrinter ? 'Printer Ready' : 'No Printer',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: hasPrinter ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -409,6 +542,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMainActionsPanel() {
+    final currentPrinter = UnifiedPrinterService.getCurrentPrinter();
+    final hasPrinter = currentPrinter != null;
+
     return Card(
       elevation: 4,
       clipBehavior: Clip
@@ -440,19 +576,46 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Select order type to begin',
                   style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
+
+                // NEW: Printer Status Warning
+                if (!hasPrinter) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning, color: Colors.red[600]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Printer required for orders',
+                            style: TextStyle(
+                              color: Colors.red[700],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 32),
 
-                // Main Order Buttons
+                // Main Order Buttons with printer validation
                 _buildLargeOrderButton(
                   context: context,
                   title: 'TAKEAWAY ORDER',
                   subtitle: 'Collection & Delivery • Press F1',
                   icon: Icons.takeout_dining,
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const TakeawayOrderScreen())),
+                  onPressed: _navigateToTakeaway,
                   color: Colors.orange[600]!,
+                  enabled: hasPrinter,
                 ),
 
                 const SizedBox(height: 20),
@@ -462,11 +625,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: 'DINE IN ORDER',
                   subtitle: 'Table Service • Press F2',
                   icon: Icons.restaurant_menu,
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const DineInOrderScreen())),
+                  onPressed: _navigateToDineIn,
                   color: Colors.blue[600]!,
+                  enabled: hasPrinter,
                 ),
 
                 const SizedBox(height: 32),
@@ -516,6 +677,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             context,
                             MaterialPageRoute(
                                 builder: (_) => PrinterSettingsScreen())),
+                        highlighted: !hasPrinter,
                       ),
                     ),
                   ],
@@ -535,19 +697,20 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData icon,
     required VoidCallback onPressed,
     required Color color,
+    bool enabled = true,
   }) {
     return SizedBox(
       width: double.infinity,
       height: 100,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: enabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
+          backgroundColor: enabled ? color : Colors.grey[400],
           foregroundColor: Colors.white,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.all(16),
-          elevation: 6,
+          elevation: enabled ? 6 : 1,
         ),
         child: Row(
           children: [
@@ -566,7 +729,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   Text(
-                    subtitle,
+                    enabled ? subtitle : 'Printer required',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 14,
@@ -575,6 +738,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+            if (!enabled)
+              Icon(Icons.lock, size: 24, color: Colors.white.withOpacity(0.7)),
           ],
         ),
       ),
@@ -585,27 +750,36 @@ class _HomeScreenState extends State<HomeScreen> {
     required String title,
     required IconData icon,
     required VoidCallback onPressed,
+    bool highlighted = false,
   }) {
-    // Return a more flexible button without a fixed height
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        side: BorderSide(color: Colors.orange[300]!),
+        side: BorderSide(
+          color: highlighted ? Colors.red[400]! : Colors.orange[300]!,
+          width: highlighted ? 2 : 1,
+        ),
+        backgroundColor: highlighted ? Colors.red[50] : null,
         padding: const EdgeInsets.symmetric(
             vertical: 8, horizontal: 4), // Use padding for sizing
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 20, color: Colors.orange[600]),
+          Icon(
+            icon,
+            size: 20,
+            color: highlighted ? Colors.red[600] : Colors.orange[600],
+          ),
           const SizedBox(height: 4),
           Text(
             title,
             textAlign: TextAlign.center, // Center text if it wraps
             style: TextStyle(
               fontSize: 12,
-              color: Colors.orange[600],
+              color: highlighted ? Colors.red[600] : Colors.orange[600],
+              fontWeight: highlighted ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         ],
